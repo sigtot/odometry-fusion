@@ -1,0 +1,10 @@
+<launch>
+<node
+pkg="test_solution"
+type="test_solution"
+name="test_solution"
+required="true"
+output="screen"
+/>
+</launch>
+
