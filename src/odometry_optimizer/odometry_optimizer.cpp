@@ -7,14 +7,10 @@
 #include <gtsam/nonlinear/Values.h>
 #include <ros/ros.h>
 #include <nav_msgs/Odometry.h>
+#include "ISAMOptimizer.h"
 
 using namespace std;
 using namespace gtsam;
-
-void odometryCallback(const nav_msgs::Odometry &msg){
-    auto pos = msg.pose.pose.position;
-    ROS_INFO("I heard: (%f, %f, %f)", pos.x, pos.y, pos.z);
-}
 
 int main(int argc, char **argv) {
     // Create an empty nonlinear factor graph
@@ -57,6 +53,9 @@ int main(int argc, char **argv) {
 
     ros::init(argc, argv, "odometry_optimizer");
     ros::NodeHandle nh;
-    ros::Subscriber sub = nh.subscribe("/rovio/odometry", 1000, odometryCallback);
+    ros::Publisher pub = nh.advertise<nav_msgs::Odometry>("/optimized_pose", 1000);
+    auto isamOptimizer = ISAMOptimizer(&pub);
+    ros::Subscriber sub = nh.subscribe("/rovio/odometry", 1000, &ISAMOptimizer::recvOdometryAndPublishUpdatedPoses,
+                                       &isamOptimizer);
     ros::spin();
 }
