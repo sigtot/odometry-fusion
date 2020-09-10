@@ -6,5 +6,11 @@ name="odometry_optimizer"
 required="true"
 output="screen"
 />
+<node
+pkg="rosbag"
+name="play"
+type="play"
+args="$(find odometry_optimizer)/rosbag/odometries.bag --clock"
+/>
 </launch>
 
