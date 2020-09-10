@@ -5,9 +5,16 @@
 #include <gtsam/nonlinear/LevenbergMarquardtOptimizer.h>
 #include <gtsam/nonlinear/Marginals.h>
 #include <gtsam/nonlinear/Values.h>
+#include <ros/ros.h>
+#include <nav_msgs/Odometry.h>
 
 using namespace std;
 using namespace gtsam;
+
+void odometryCallback(const nav_msgs::Odometry &msg){
+    auto pos = msg.pose.pose.position;
+    ROS_INFO("I heard: (%f, %f, %f)", pos.x, pos.y, pos.z);
+}
 
 int main(int argc, char **argv) {
     // Create an empty nonlinear factor graph
@@ -47,4 +54,9 @@ int main(int argc, char **argv) {
     cout << "x2 covariance:\n" << marginals.marginalCovariance(2) << endl;
     cout << "x3 covariance:\n" << marginals.marginalCovariance(3) << endl;
     // You should see the covariances ballooning!
+
+    ros::init(argc, argv, "odometry_optimizer");
+    ros::NodeHandle nh;
+    ros::Subscriber sub = nh.subscribe("/rovio/odometry", 1000, odometryCallback);
+    ros::spin();
 }
