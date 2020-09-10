@@ -4,12 +4,17 @@
 
 #include <ros/ros.h>
 #include <nav_msgs/Odometry.h>
+#include <gtsam/nonlinear/NonlinearISAM.h>
+
+using namespace gtsam;
 
 class ISAMOptimizer {
 private:
     ros::Publisher &pub;
+    NonlinearISAM isam;
+    NonlinearFactorGraph graph;
 public:
-    explicit ISAMOptimizer(ros::Publisher *pub);
+    ISAMOptimizer(ros::Publisher *pub, int reorderInterval);
     void recvOdometryAndPublishUpdatedPoses(const nav_msgs::Odometry &msg);
 };
 
