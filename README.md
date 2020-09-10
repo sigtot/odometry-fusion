@@ -1,4 +1,4 @@
-# ROS Hello world/boilerplate
+# Simple odometry optimizer ROS node
 
 ## Build and run
 ```bash
@@ -7,5 +7,5 @@ catkin_init_workspace
 cd ..
 catkin_make
 source devel/setup.bash
-roslaunch test_solution solution.launch
+roslaunch odometry_optimizer solution.launch
 ```

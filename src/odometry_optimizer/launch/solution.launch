@@ -1,0 +1,10 @@
+<launch>
+<node
+pkg="odometry_optimizer"
+type="odometry_optimizer"
+name="odometry_optimizer"
+required="true"
+output="screen"
+/>
+</launch>
+
