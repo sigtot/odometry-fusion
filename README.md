@@ -12,3 +12,9 @@ catkin_make
 source devel/setup.bash
 roslaunch odometry_optimizer solution.launch
 ```
+
+## Topics
+The node subscribes to odometries from the topic `/rovio/odometry` and publishes optimized poses on `/optimized_pose`. You can see the outgoing poses with the ommand
+```bash
+rostopic echo /optimized_pose
+```
