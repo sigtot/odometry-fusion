@@ -23,7 +23,7 @@ geometry_msgs::Pose toPoseMsg(const Pose3 &pose) {
     return poseMsg;
 }
 
-Pose3 toPose(const geometry_msgs::Pose &poseMsg) {
+Pose3 toPose3(const geometry_msgs::Pose &poseMsg) {
     auto pointMsg = poseMsg.position;
     auto point = Point3(pointMsg.x, pointMsg.y, pointMsg.z);
     auto quatMsg = poseMsg.orientation;
