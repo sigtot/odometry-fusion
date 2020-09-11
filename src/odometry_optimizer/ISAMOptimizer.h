@@ -15,6 +15,7 @@ private:
     ros::Publisher &pub;
     NonlinearISAM isam;
     NonlinearFactorGraph graph;
+    Pose3 lastOdometry;
     int poseNum = 1;
 public:
     ISAMOptimizer(ros::Publisher *pub, int reorderInterval);

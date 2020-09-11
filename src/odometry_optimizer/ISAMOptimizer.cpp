@@ -19,8 +19,7 @@ ISAMOptimizer::ISAMOptimizer(ros::Publisher *pub, int reorderInterval) : pub(*pu
 
 void ISAMOptimizer::recvOdometryAndPublishUpdatedPoses(const nav_msgs::Odometry &msg) {
     auto odometry = toPose3(msg.pose.pose);
-    auto lastPose = isam.estimate().at<Pose3>(Symbol('x', poseNum - 1));
-    auto odometryDelta = lastPose.between(odometry);
+    auto odometryDelta = lastOdometry.between(odometry);
     auto odometryNoise = noiseModel::Diagonal::Sigmas(Vector6(0.2, 0.2, 0.2, 0.2, 0.2, 0.2));
     graph.add(BetweenFactor<Pose3>(Symbol('x', poseNum - 1), Symbol('x', poseNum), odometryDelta, odometryNoise));
 
@@ -32,4 +31,5 @@ void ISAMOptimizer::recvOdometryAndPublishUpdatedPoses(const nav_msgs::Odometry 
     pub.publish(toPoseMsg(newPose));
     ROS_INFO("Published new pose: (%f, %f, %f)", newPose.x(), newPose.y(), newPose.z());
     poseNum++;
+    lastOdometry = odometry;
 }
