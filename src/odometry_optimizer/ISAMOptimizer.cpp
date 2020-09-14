@@ -17,10 +17,10 @@ ISAMOptimizer::ISAMOptimizer(ros::Publisher *pub, int reorderInterval) : pub(*pu
     poseNum++;
 }
 
-void ISAMOptimizer::recvOdometryAndPublishUpdatedPoses(const nav_msgs::Odometry &msg) {
+void ISAMOptimizer::recvIMUOdometryAndPublishUpdatedPoses(const nav_msgs::Odometry &msg) {
     auto odometry = toPose3(msg.pose.pose);
-    auto odometryDelta = lastOdometry.between(odometry);
-    auto odometryNoise = noiseModel::Diagonal::Sigmas(Vector6(0.2, 0.2, 0.2, 0.2, 0.2, 0.2));
+    auto odometryDelta = lastIMUOdometry.between(odometry);
+    auto odometryNoise = noiseModel::Diagonal::Sigmas(Vector6(0.4, 0.4, 0.4, 0.4, 0.4, 0.4));
     graph.add(BetweenFactor<Pose3>(Symbol('x', poseNum - 1), Symbol('x', poseNum), odometryDelta, odometryNoise));
 
     Values initialEstimate;
@@ -31,5 +31,21 @@ void ISAMOptimizer::recvOdometryAndPublishUpdatedPoses(const nav_msgs::Odometry 
     pub.publish(toPoseMsg(newPose));
     ROS_INFO("Published new pose: (%f, %f, %f)", newPose.x(), newPose.y(), newPose.z());
     poseNum++;
-    lastOdometry = odometry;
+    lastIMUOdometry = odometry;
+}
+
+void ISAMOptimizer::recvLidarOdometryAndPublishUpdatedPoses(const nav_msgs::Odometry &msg) {
+    auto odometry = toPose3(msg.pose.pose);
+    auto odometryDelta = lastLidarOdometry.between(odometry);
+    auto odometryNoise = noiseModel::Diagonal::Sigmas(Vector6(0.2, 0.2, 0.2, 0.2, 0.2, 0.2));
+    graph.add(BetweenFactor<Pose3>(Symbol('x', lastLidarPoseNum), Symbol('x', poseNum - 1), odometryDelta, odometryNoise));
+
+    Values initialEstimate;
+    isam.update(graph, initialEstimate); // Naive implementation: Do not add a new value
+    Pose3 newPose = isam.estimate().at<Pose3>(Symbol('x', poseNum - 1));
+
+    pub.publish(toPoseMsg(newPose));
+    ROS_INFO("Published updated pose (%f, %f, %f)", newPose.x(), newPose.y(), newPose.z());
+    lastLidarOdometry = odometry;
+    lastLidarPoseNum = poseNum - 1;
 }

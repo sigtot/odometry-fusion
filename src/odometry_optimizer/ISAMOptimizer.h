@@ -15,12 +15,15 @@ private:
     ros::Publisher &pub;
     NonlinearISAM isam;
     NonlinearFactorGraph graph;
-    Pose3 lastOdometry;
+    Pose3 lastIMUOdometry;
+    Pose3 lastLidarOdometry;
+    int lastLidarPoseNum = 1;
     int poseNum = 1;
 public:
     ISAMOptimizer(ros::Publisher *pub, int reorderInterval);
 
-    void recvOdometryAndPublishUpdatedPoses(const nav_msgs::Odometry &msg);
+    void recvIMUOdometryAndPublishUpdatedPoses(const nav_msgs::Odometry &msg);
+    void recvLidarOdometryAndPublishUpdatedPoses(const nav_msgs::Odometry &msg);
 };
 
 

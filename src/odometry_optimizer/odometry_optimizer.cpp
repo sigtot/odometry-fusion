@@ -11,7 +11,9 @@ int main(int argc, char **argv) {
     ros::NodeHandle nh;
     ros::Publisher pub = nh.advertise<geometry_msgs::Pose>("/optimized_pose", 1000);
     auto isamOptimizer = ISAMOptimizer(&pub, 3);
-    ros::Subscriber sub = nh.subscribe("/rovio/odometry", 1000, &ISAMOptimizer::recvOdometryAndPublishUpdatedPoses,
-                                       &isamOptimizer);
+    ros::Subscriber subImu = nh.subscribe("/rovio/odometry", 1000,
+                                          &ISAMOptimizer::recvIMUOdometryAndPublishUpdatedPoses, &isamOptimizer);
+    ros::Subscriber subLidar = nh.subscribe("/aft_mapped_to_init_CORRECTED", 1000,
+                                            &ISAMOptimizer::recvLidarOdometryAndPublishUpdatedPoses, &isamOptimizer);
     ros::spin();
 }
