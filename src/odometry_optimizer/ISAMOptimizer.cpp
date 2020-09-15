@@ -14,10 +14,10 @@ ISAMOptimizer::ISAMOptimizer(ros::Publisher *pub, int reorderInterval) : pub(*pu
     Values initialEstimate;
     initialEstimate.insert(Symbol('x', poseNum), Pose3());
     isam.update(graph, initialEstimate);
-    poseNum++;
 }
 
 void ISAMOptimizer::recvIMUOdometryAndPublishUpdatedPoses(const nav_msgs::Odometry &msg) {
+    poseNum++;
     auto odometry = toPose3(msg.pose.pose);
     auto odometryDelta = lastIMUOdometry.between(odometry);
     auto odometryNoise = noiseModel::Diagonal::Sigmas(Vector6(0.4, 0.4, 0.4, 0.4, 0.4, 0.4));
@@ -26,26 +26,26 @@ void ISAMOptimizer::recvIMUOdometryAndPublishUpdatedPoses(const nav_msgs::Odomet
     Values initialEstimate;
     initialEstimate.insert(Symbol('x', poseNum), odometry);
     isam.update(graph, initialEstimate);
-    Pose3 newPose = isam.estimate().at<Pose3>(Symbol('x', poseNum));
-
-    pub.publish(toPoseMsg(newPose));
-    ROS_INFO("Published new pose: (%f, %f, %f)", newPose.x(), newPose.y(), newPose.z());
-    poseNum++;
+    publishUpdatedPoses();
     lastIMUOdometry = odometry;
+    timestamps.push_back(msg.header.stamp);
 }
 
 void ISAMOptimizer::recvLidarOdometryAndPublishUpdatedPoses(const nav_msgs::Odometry &msg) {
     auto odometry = toPose3(msg.pose.pose);
     auto odometryDelta = lastLidarOdometry.between(odometry);
     auto odometryNoise = noiseModel::Diagonal::Sigmas(Vector6(0.2, 0.2, 0.2, 0.2, 0.2, 0.2));
-    graph.add(BetweenFactor<Pose3>(Symbol('x', lastLidarPoseNum), Symbol('x', poseNum - 1), odometryDelta, odometryNoise));
+    graph.add(BetweenFactor<Pose3>(Symbol('x', lastLidarPoseNum), Symbol('x', poseNum), odometryDelta, odometryNoise));
 
     Values initialEstimate;
     isam.update(graph, initialEstimate); // Naive implementation: Do not add a new value
-    Pose3 newPose = isam.estimate().at<Pose3>(Symbol('x', poseNum - 1));
-
-    pub.publish(toPoseMsg(newPose));
-    ROS_INFO("Published updated pose (%f, %f, %f)", newPose.x(), newPose.y(), newPose.z());
+    publishUpdatedPoses();
     lastLidarOdometry = odometry;
-    lastLidarPoseNum = poseNum - 1;
+    lastLidarPoseNum = poseNum;
+}
+
+void ISAMOptimizer::publishUpdatedPoses() {
+    Pose3 newPose = isam.estimate().at<Pose3>(Symbol('x', poseNum));
+    pub.publish(toPoseMsg(newPose));
+    ROS_INFO("Published pose (%f, %f, %f)", newPose.x(), newPose.y(), newPose.z());
 }

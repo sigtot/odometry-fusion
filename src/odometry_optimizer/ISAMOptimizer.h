@@ -17,6 +17,7 @@ private:
     NonlinearFactorGraph graph;
     Pose3 lastIMUOdometry;
     Pose3 lastLidarOdometry;
+    vector<ros::Time> timestamps;
     int lastLidarPoseNum = 1;
     int poseNum = 1;
 public:
@@ -24,6 +25,7 @@ public:
 
     void recvIMUOdometryAndPublishUpdatedPoses(const nav_msgs::Odometry &msg);
     void recvLidarOdometryAndPublishUpdatedPoses(const nav_msgs::Odometry &msg);
+    void publishUpdatedPoses();
 };
 
 

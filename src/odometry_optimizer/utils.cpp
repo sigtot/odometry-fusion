@@ -2,8 +2,6 @@
 #include <geometry_msgs/Pose.h>
 #include <geometry_msgs/Quaternion.h>
 #include <geometry_msgs/Point.h>
-#include <gtsam/nonlinear/LevenbergMarquardtOptimizer.h>
-#include <gtsam/slam/BetweenFactor.h>
 
 geometry_msgs::Pose toPoseMsg(const Pose3 &pose) {
     geometry_msgs::Point pointMsg;
