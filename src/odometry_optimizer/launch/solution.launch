@@ -1,19 +1,20 @@
 <launch>
-<node
-pkg="odometry_optimizer"
-type="odometry_optimizer"
-name="odometry_optimizer"
-required="true"
-output="screen"
-/>
-<node
-pkg="rosbag"
-name="play"
-type="play"
-args="$(find odometry_optimizer)/rosbag/odometries.bag --clock"
-/>
-<node pkg="tf" type="static_transform_publisher" name="tf_lidar_cam" respawn="true" args="0.143373033912513 0.001844679769965 -0.152734883569140 -1.563483662924555 -0.001122948541060 -1.755796784911929 /velodyne /cam_blackfly 10"/>
-<node pkg="tf" type="static_transform_publisher" name="tf_cam_imu" args="0.001764040766005029 -0.05114066423636763 -0.04230207153645288 -1.5621434 -1.4004639 3.1404704 /cam_blackfly /vn100 10"/>
-<node pkg="tf" type="static_transform_publisher" name="tf" args="0 0 0 0 0 0 1 map vn100 10"/>
+    <node
+            pkg="odometry_optimizer"
+            type="odometry_optimizer"
+            name="odometry_optimizer"
+            required="true"
+            output="screen"
+    />
+    <node
+            pkg="rosbag"
+            name="play"
+            type="play"
+            args="$(find odometry_optimizer)/rosbag/odometries.bag --clock"
+    />
+    <node pkg="tf" type="static_transform_publisher" name="tf_lidar_cam" respawn="true"
+          args="0.143373033912513 0.001844679769965 -0.152734883569140 -1.563483662924555 -0.001122948541060 -1.755796784911929 /velodyne /cam_blackfly 10"/>
+    <node pkg="tf" type="static_transform_publisher" name="tf_cam_imu"
+          args="0.001764040766005029 -0.05114066423636763 -0.04230207153645288 -1.5621434 -1.4004639 3.1404704 /cam_blackfly /vn100 10"/>
+    <node pkg="tf" type="static_transform_publisher" name="tf" args="0 0 0 0 0 0 1 map vn100 10"/>
 </launch>
-
