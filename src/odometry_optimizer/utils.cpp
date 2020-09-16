@@ -28,3 +28,10 @@ Pose3 toPose3(const geometry_msgs::Pose &poseMsg) {
     auto rot = Rot3::Quaternion(quatMsg.w, quatMsg.x, quatMsg.y, quatMsg.z);
     return Pose3(rot, point);
 }
+
+geometry_msgs::PoseStamped createStampedPoseMsg(const Pose3 &pose, const ros::Time &stamp) {
+    geometry_msgs::PoseStamped stampedMsg;
+    stampedMsg.pose = toPoseMsg(pose);
+    stampedMsg.header.stamp = stamp;
+    return stampedMsg;
+}

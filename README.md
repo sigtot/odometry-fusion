@@ -14,7 +14,7 @@ roslaunch odometry_optimizer solution.launch
 ```
 
 ## Topics
-The node subscribes to odometries from the topic `/rovio/odometry` and publishes optimized poses on `/optimized_pose`. You can see the outgoing poses with the ommand
+The node subscribes to odometries from the topic `/rovio/odometry` and publishes the optimized path on `/optimized_path`. You can see the outgoing poses with the command
 ```bash
-rostopic echo /optimized_pose
+rostopic echo /optimized_path
 ```

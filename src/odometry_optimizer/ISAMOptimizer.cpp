@@ -6,6 +6,7 @@
 #include <gtsam/nonlinear/LevenbergMarquardtOptimizer.h>
 #include <gtsam/nonlinear/Values.h>
 #include <gtsam/inference/Symbol.h>
+#include <nav_msgs/Path.h>
 
 ISAMOptimizer::ISAMOptimizer(ros::Publisher *pub, int reorderInterval) : pub(*pub),
                                                                          isam(NonlinearISAM(reorderInterval)) {
@@ -50,8 +51,14 @@ void ISAMOptimizer::recvLidarOdometryAndPublishUpdatedPoses(const nav_msgs::Odom
 
 void ISAMOptimizer::publishUpdatedPoses() {
     Pose3 newPose = isam.estimate().at<Pose3>(Symbol('x', poseNum));
-    pub.publish(toPoseMsg(newPose));
-    ROS_INFO("Published pose (%f, %f, %f)", newPose.x(), newPose.y(), newPose.z());
+    nav_msgs::Path pathMsg;
+    for (int j = 1; j < poseNum; ++j) {
+        auto pose = isam.estimate().at<Pose3>(Symbol('x', j));
+        auto stamp = timestamps[j];
+        pathMsg.poses.push_back(createStampedPoseMsg(pose, stamp));
+    }
+    pub.publish(pathMsg);
+    ROS_INFO("Published path");
 }
 
 void ISAMOptimizer::incrementTime(const ros::Time &stamp) {
