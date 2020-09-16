@@ -8,11 +8,9 @@
 #include <gtsam/inference/Symbol.h>
 #include <nav_msgs/Path.h>
 
-ISAMOptimizer::ISAMOptimizer(ros::Publisher *pub, int reorderInterval) : pub(*pub),
-                                                                         isam(NonlinearISAM(reorderInterval)) {
-    auto priorNoise = noiseModel::Diagonal::Sigmas(Vector6(0.3, 0.3, 0.3, 0.3, 0.3, 0.3));
-    graph.add(PriorFactor<Pose3>(Symbol('x', 1), Pose3(), priorNoise));
-}
+ISAMOptimizer::ISAMOptimizer(ros::Publisher *pub,
+                             int reorderInterval) : pub(*pub),
+                                                    isam(NonlinearISAM(reorderInterval)) {}
 
 void ISAMOptimizer::recvIMUOdometryAndPublishUpdatedPoses(const nav_msgs::Odometry &msg) {
     mu.lock();
@@ -22,6 +20,10 @@ void ISAMOptimizer::recvIMUOdometryAndPublishUpdatedPoses(const nav_msgs::Odomet
         auto odometryDelta = lastIMUOdometry.between(odometry);
         auto odometryNoise = noiseModel::Diagonal::Sigmas(Vector6(0.4, 0.4, 0.4, 0.4, 0.4, 0.4));
         graph.add(BetweenFactor<Pose3>(Symbol('x', poseNum - 1), Symbol('x', poseNum), odometryDelta, odometryNoise));
+    } else {
+        // We need to add a prior in the first iteration
+        auto priorNoise = noiseModel::Diagonal::Sigmas(Vector6(0.3, 0.3, 0.3, 0.3, 0.3, 0.3));
+        graph.add(PriorFactor<Pose3>(Symbol('x', 1), odometry, priorNoise));
     }
 
     Values initialEstimate;
@@ -33,20 +35,21 @@ void ISAMOptimizer::recvIMUOdometryAndPublishUpdatedPoses(const nav_msgs::Odomet
 }
 
 void ISAMOptimizer::recvLidarOdometryAndPublishUpdatedPoses(const nav_msgs::Odometry &msg) {
-    if (poseNum > 2) {
-        mu.lock();
-        auto odometry = toPose3(msg.pose.pose);
+    mu.lock();
+    auto odometry = toPose3(msg.pose.pose);
+    if (lastLidarPoseNum > 1) {
         auto odometryDelta = lastLidarOdometry.between(odometry);
         auto odometryNoise = noiseModel::Diagonal::Sigmas(Vector6(0.2, 0.2, 0.2, 0.2, 0.2, 0.2));
-        graph.add(BetweenFactor<Pose3>(Symbol('x', lastLidarPoseNum), Symbol('x', poseNum), odometryDelta, odometryNoise));
+        graph.add(BetweenFactor<Pose3>(Symbol('x', lastLidarPoseNum), Symbol('x', poseNum), odometryDelta,
+                                       odometryNoise));
 
         Values initialEstimate;
         isam.update(graph, initialEstimate); // Naive implementation: Do not add a new value
         publishUpdatedPoses();
-        lastLidarOdometry = odometry;
-        lastLidarPoseNum = poseNum;
-        mu.unlock();
     }
+    lastLidarOdometry = odometry;
+    lastLidarPoseNum = poseNum;
+    mu.unlock();
 }
 
 void ISAMOptimizer::publishUpdatedPoses() {
