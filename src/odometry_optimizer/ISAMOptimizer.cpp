@@ -55,8 +55,11 @@ void ISAMOptimizer::publishUpdatedPoses() {
     for (int j = 1; j < poseNum; ++j) {
         auto pose = isam.estimate().at<Pose3>(Symbol('x', j));
         auto stamp = timestamps[j];
-        pathMsg.poses.push_back(createStampedPoseMsg(pose, stamp));
+        auto stampedPose = createStampedPoseMsg(pose, stamp);
+        stampedPose.header.frame_id = "vn100";
+        pathMsg.poses.push_back(stampedPose);
     }
+    pathMsg.header.frame_id = "vn100";
     pub.publish(pathMsg);
     ROS_INFO("Published path");
 }

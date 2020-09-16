@@ -18,3 +18,6 @@ The node subscribes to odometries from the topic `/rovio/odometry` and publishes
 ```bash
 rostopic echo /optimized_path
 ```
+
+## Rviz
+You can view the optimized path in rviz by adding a path visualization on the `/optimized_path` topic. 
