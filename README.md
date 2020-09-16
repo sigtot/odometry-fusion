@@ -21,3 +21,28 @@ rostopic echo /optimized_path
 
 ## Rviz
 You can view the optimized path in rviz by adding a path visualization on the `/optimized_path` topic. 
+
+## Export bag of optimized poses
+To export a bag of optimized poses to `rosbag/paths.bag`, run
+```bash
+roslaunch odometry_optimizer record.launch
+```
+
+## Plot `paths.bag` with python
+You will find python code for plotting in `/plots`.
+### Setup
+Install extra dependencies with 
+```bash
+pipenv install
+```
+
+### Run
+Make sure a roscore is running with
+```bash
+source devel/setup.bash
+roscore
+```
+then run the python script from another terminal.
+```bash
+pipenv run python plot_path.py
+```
