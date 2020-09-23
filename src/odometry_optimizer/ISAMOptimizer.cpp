@@ -35,6 +35,7 @@ void ISAMOptimizer::recvIMUOdometryAndPublishUpdatedPoses(const nav_msgs::Odomet
 }
 
 void ISAMOptimizer::recvLidarOdometryAndPublishUpdatedPoses(const nav_msgs::Odometry &msg) {
+    // TODO: add vn100 transform
     mu.lock();
     auto odometry = toPose3(msg.pose.pose);
     if (lastLidarPoseNum > 1) {
@@ -59,10 +60,10 @@ void ISAMOptimizer::publishUpdatedPoses() {
         auto pose = isam.estimate().at<Pose3>(Symbol('x', j));
         auto stamp = timestamps[j];
         auto stampedPose = createStampedPoseMsg(pose, stamp);
-        stampedPose.header.frame_id = "vn100";
+        stampedPose.header.frame_id = "world";
         pathMsg.poses.push_back(stampedPose);
     }
-    pathMsg.header.frame_id = "vn100";
+    pathMsg.header.frame_id = "world";
     pub.publish(pathMsg);
     ROS_INFO("Published path");
 }
