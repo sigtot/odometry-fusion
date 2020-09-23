@@ -1,6 +1,7 @@
 #include "ISAMOptimizer.h"
 #include "utils.h"
 #include <gtsam/geometry/Pose3.h>
+#include <gtsam/geometry/Rot3.h>
 #include <gtsam/slam/BetweenFactor.h>
 #include <gtsam/nonlinear/NonlinearFactorGraph.h>
 #include <gtsam/nonlinear/LevenbergMarquardtOptimizer.h>
@@ -35,9 +36,12 @@ void ISAMOptimizer::recvIMUOdometryAndPublishUpdatedPoses(const nav_msgs::Odomet
 }
 
 void ISAMOptimizer::recvLidarOdometryAndPublishUpdatedPoses(const nav_msgs::Odometry &msg) {
-    // TODO: add vn100 transform
+    Pose3 TLidarCam(Rot3(0.4536309, -0.4497171, -0.5423084, -0.5457794),
+                    Point3(0.143373, 0.001844, -0.1527348));
+    Pose3 TCamIMU(Rot3(-0.4533646, -0.4579341, 0.5381071, 0.5433209),
+                  Point3(0.0017640, -0.05114066, -0.0423020));
     mu.lock();
-    auto odometry = toPose3(msg.pose.pose);
+    auto odometry = TCamIMU.compose(TLidarCam).compose(toPose3(msg.pose.pose));
     if (lastLidarPoseNum > 1) {
         auto odometryDelta = lastLidarOdometry.between(odometry);
         auto odometryNoise = noiseModel::Diagonal::Sigmas(Vector6(0.2, 0.2, 0.2, 0.2, 0.2, 0.2));
