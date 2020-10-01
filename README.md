@@ -14,13 +14,13 @@ roslaunch odometry_optimizer solution.launch
 ```
 
 ## Topics
-The node subscribes to odometries from the topic `/rovio/odometry` and publishes the optimized path on `/optimized_path`. You can see the outgoing poses with the command
+The node subscribes to odometries from the topic `/rovio/odometry` and publishes the optimized path on `/optimized_pose`. You can see the outgoing poses with the command
 ```bash
-rostopic echo /optimized_path
+rostopic echo /optimized_pose
 ```
 
 ## Rviz
-You can view the optimized path in rviz by adding a path visualization on the `/optimized_path` topic. 
+You can view the optimized path in rviz by adding a path visualization on the `/optimized_pose` topic.
 
 ## Export bag of optimized poses
 To export a bag of optimized poses to `rosbag/paths.bag`, run
@@ -31,7 +31,7 @@ roslaunch odometry_optimizer record.launch
 ## Plot `paths.bag` with python
 You will find python code for plotting in `/plots`.
 ### Setup
-Install extra dependencies with 
+Install extra dependencies with
 ```bash
 pipenv install
 ```

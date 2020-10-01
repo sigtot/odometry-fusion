@@ -8,6 +8,8 @@
 #include <gtsam/nonlinear/Values.h>
 #include <gtsam/inference/Symbol.h>
 #include <nav_msgs/Path.h>
+#include <geometry_msgs/PoseWithCovariance.h>
+#include <nav_msgs/Odometry.h>
 
 ISAMOptimizer::ISAMOptimizer(ros::Publisher *pub,
                              int reorderInterval) : pub(*pub),
@@ -30,7 +32,7 @@ void ISAMOptimizer::recvIMUOdometryAndPublishUpdatedPoses(const nav_msgs::Odomet
     Values initialEstimate;
     initialEstimate.insert(Symbol('x', poseNum), odometry);
     isam.update(graph, initialEstimate);
-    publishUpdatedPoses();
+    publishNewestPose();
     lastIMUOdometry = odometry;
     mu.unlock();
 }
@@ -50,7 +52,7 @@ void ISAMOptimizer::recvLidarOdometryAndPublishUpdatedPoses(const nav_msgs::Odom
 
         Values initialEstimate;
         isam.update(graph, initialEstimate); // Naive implementation: Do not add a new value
-        publishUpdatedPoses();
+        publishNewestPose();
     }
     lastLidarOdometry = odometry;
     lastLidarPoseNum = poseNum;
@@ -58,7 +60,6 @@ void ISAMOptimizer::recvLidarOdometryAndPublishUpdatedPoses(const nav_msgs::Odom
 }
 
 void ISAMOptimizer::publishUpdatedPoses() {
-    Pose3 newPose = isam.estimate().at<Pose3>(Symbol('x', poseNum));
     nav_msgs::Path pathMsg;
     for (int j = 1; j < poseNum; ++j) {
         auto pose = isam.estimate().at<Pose3>(Symbol('x', j));
@@ -70,6 +71,15 @@ void ISAMOptimizer::publishUpdatedPoses() {
     pathMsg.header.frame_id = "world";
     pub.publish(pathMsg);
     ROS_INFO("Published path");
+}
+
+void ISAMOptimizer::publishNewestPose() {
+    Pose3 newPose = isam.estimate().at<Pose3>(Symbol('x', poseNum));
+    nav_msgs::Odometry msg;
+    msg.pose.pose = toPoseMsg(newPose);
+    msg.header.frame_id = "world";
+    pub.publish(msg);
+    ROS_INFO("Published updated pose");
 }
 
 void ISAMOptimizer::incrementTime(const ros::Time &stamp) {
