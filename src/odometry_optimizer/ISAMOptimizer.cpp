@@ -10,18 +10,19 @@
 #include <nav_msgs/Path.h>
 #include <geometry_msgs/PoseWithCovariance.h>
 #include <nav_msgs/Odometry.h>
+#include <boost/optional/optional_io.hpp>
 
 ISAMOptimizer::ISAMOptimizer(ros::Publisher *pub,
                              int reorderInterval) : pub(*pub),
                                                     isam(NonlinearISAM(reorderInterval)) {}
 
-void ISAMOptimizer::recvIMUOdometryAndPublishUpdatedPoses(const nav_msgs::Odometry &msg) {
+void ISAMOptimizer::recvRovioOdometryAndPublishUpdatedPoses(const nav_msgs::Odometry &msg) {
     mu.lock();
     incrementTime(msg.header.stamp);
     auto odometry = toPose3(msg.pose.pose);
     if (poseNum > 1) {
         auto odometryDelta = lastIMUOdometry.between(odometry);
-        auto odometryNoise = noiseModel::Diagonal::Sigmas(Vector6(0.4, 0.4, 0.4, 0.4, 0.4, 0.4));
+        auto odometryNoise = noiseModel::Gaussian::Covariance(toGtsamMatrix(msg.pose.covariance));
         graph.add(BetweenFactor<Pose3>(Symbol('x', poseNum - 1), Symbol('x', poseNum), odometryDelta, odometryNoise));
     } else {
         // We need to add a prior in the first iteration

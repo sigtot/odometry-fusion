@@ -35,3 +35,16 @@ geometry_msgs::PoseStamped createStampedPoseMsg(const Pose3 &pose, const ros::Ti
     stampedMsg.header.stamp = stamp;
     return stampedMsg;
 }
+
+// Silly conversion function while I look for a better way to convert an array to an eigen::Matrix
+gtsam::Matrix6 toGtsamMatrix(boost::array<double, 36> arr) {
+    Matrix6 mat;
+    auto ait = arr.begin();
+    int j = 0;
+    while (ait != arr.end()) {
+        mat(j / 6, j % 6) = *ait;
+        j++;
+        ait++;
+    }
+    return mat;
+}

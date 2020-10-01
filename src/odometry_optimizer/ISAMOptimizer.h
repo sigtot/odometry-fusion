@@ -26,7 +26,7 @@ private:
 public:
     ISAMOptimizer(ros::Publisher *pub, int reorderInterval);
 
-    void recvIMUOdometryAndPublishUpdatedPoses(const nav_msgs::Odometry &msg);
+    void recvRovioOdometryAndPublishUpdatedPoses(const nav_msgs::Odometry &msg);
     void recvLidarOdometryAndPublishUpdatedPoses(const nav_msgs::Odometry &msg);
     void publishUpdatedPoses();
     void publishNewestPose();
