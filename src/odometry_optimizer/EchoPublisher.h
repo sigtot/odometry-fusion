@@ -13,8 +13,10 @@ private:
     string topic;
     ros::Publisher pub;
     ros::Subscriber sub;
+    bool enabled = true;
 
     void echo(const T &msg);
+
     string publishTopic();
 
 public:
@@ -29,8 +31,12 @@ EchoPublisher<T>::EchoPublisher(const string &topic, ros::NodeHandle &nh) : topi
 
 template<class T>
 void EchoPublisher<T>::echo(const T &msg) {
-    pub.publish(msg);
-    cout << "Echoed msg on " << publishTopic() << endl;
+    if (enabled) {
+        pub.publish(msg);
+        cout << "Echoed msg on " << publishTopic() << endl;
+    } else {
+        cout << "This publisher is disabled and so did not echo message on " << publishTopic() << endl;
+    }
 }
 
 template<class T>
