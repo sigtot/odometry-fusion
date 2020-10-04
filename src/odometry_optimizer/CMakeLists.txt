@@ -19,6 +19,6 @@ add_executable(odometry_optimizer odometry_optimizer.cpp ISAMOptimizer.cpp ISAMO
 target_link_libraries(odometry_optimizer ${catkin_LIBRARIES} ${BoostLIBRARIES} gtsam)
 add_dependencies(odometry_optimizer ${catkin_EXPORTED_TARGETS})
 
-add_executable(echo_node echo_node.cpp EchoPublisher.cpp EchoPublisher.h)
+add_executable(echo_node echo_node.cpp EchoPublisher.h)
 target_link_libraries(echo_node ${catkin_LIBRARIES})
 add_dependencies(echo_node ${catkin_EXPORTED_TARGETS})
