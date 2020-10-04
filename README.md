@@ -46,3 +46,13 @@ then run the python script from another terminal.
 ```bash
 pipenv run python plot_path.py
 ```
+
+## Simulating failure cases
+You can simulate failure of sensors by disabling the incoming sensor streams.
+Both rovio and lidar can be disabled.
+To disable one of the streams, run any of the following commands:
+```bash
+rosservice call /toggle_rovio
+rosservice call /toggle_lidar
+```
+As the service names imply, this toggles the streams, so to turn them on again simply run the command once more.
