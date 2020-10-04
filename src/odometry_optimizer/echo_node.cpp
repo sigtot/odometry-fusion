@@ -1,11 +1,9 @@
 #include <ros/ros.h>
-#include <iostream>
-
-using namespace std;
+#include "EchoPublisher.h"
 
 int main(int argc, char **argv) {
     ros::init(argc, argv, "echo_node");
     ros::NodeHandle nh;
-    cout << "Hello from echo node" << endl;
-    return 1;
+    EchoPublisher rovioEchoPublisher("/rovio/odometry", nh);
+    ros::spin();
 }
