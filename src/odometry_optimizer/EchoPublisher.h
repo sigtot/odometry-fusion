@@ -4,6 +4,7 @@
 #include <ros/ros.h>
 #include <iostream>
 #include <string>
+#include <odometry_optimizer/ToggleEcho.h>
 
 using namespace std;
 
@@ -21,6 +22,9 @@ private:
 
 public:
     EchoPublisher(const string &topic, ros::NodeHandle &nh);
+
+    bool toggleEnabled(odometry_optimizer::ToggleEcho::Request &req,
+                       odometry_optimizer::ToggleEcho::Response &res);
 };
 
 template<class T>
@@ -35,13 +39,25 @@ void EchoPublisher<T>::echo(const T &msg) {
         pub.publish(msg);
         cout << "Echoed msg on " << publishTopic() << endl;
     } else {
-        cout << "This publisher is disabled and so did not echo message on " << publishTopic() << endl;
+        cout << "This publisher is disabled so did not echo message on " << publishTopic() << endl;
     }
 }
 
 template<class T>
 string EchoPublisher<T>::publishTopic() {
     return "/echo" + topic;
+}
+
+template<class T>
+bool EchoPublisher<T>::toggleEnabled(odometry_optimizer::ToggleEcho::Request &req,
+                                     odometry_optimizer::ToggleEcho::Response &res) {
+    if (topic == req.topic) {
+        enabled = !enabled;
+        cout << "Echo on " << publishTopic() << " now " << (enabled ? "enabled" : "disabled") << endl;
+        res.enabled = enabled;
+        return true;
+    }
+    return false; // TODO does this make sense? Prob not
 }
 
 #endif //SIMPLE_ODOMETRY_OPT_ROS_ECHOPUBLISHER_H
