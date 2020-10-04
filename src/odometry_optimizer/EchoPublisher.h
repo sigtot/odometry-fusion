@@ -15,6 +15,7 @@ private:
     ros::Subscriber sub;
 
     void echo(const T &msg);
+    string publishTopic();
 
 public:
     EchoPublisher(const string &topic, ros::NodeHandle &nh);
@@ -22,14 +23,19 @@ public:
 
 template<class T>
 EchoPublisher<T>::EchoPublisher(const string &topic, ros::NodeHandle &nh) : topic(topic) {
-    pub = nh.advertise<T>("/echo/" + topic, 1000);
+    pub = nh.advertise<T>(publishTopic(), 1000);
     sub = nh.subscribe(topic, 1000, &EchoPublisher::echo, this);
 }
 
 template<class T>
 void EchoPublisher<T>::echo(const T &msg) {
     pub.publish(msg);
-    cout << "Echoed msg on " << topic << endl;
+    cout << "Echoed msg on " << publishTopic() << endl;
+}
+
+template<class T>
+string EchoPublisher<T>::publishTopic() {
+    return "/echo" + topic;
 }
 
 #endif //SIMPLE_ODOMETRY_OPT_ROS_ECHOPUBLISHER_H
