@@ -51,13 +51,10 @@ string EchoPublisher<T>::publishTopic() {
 template<class T>
 bool EchoPublisher<T>::toggleEnabled(odometry_optimizer::ToggleEcho::Request &req,
                                      odometry_optimizer::ToggleEcho::Response &res) {
-    if (topic == req.topic) {
-        enabled = !enabled;
-        cout << "Echo on " << publishTopic() << " now " << (enabled ? "enabled" : "disabled") << endl;
-        res.enabled = enabled;
-        return true;
-    }
-    return false; // TODO does this make sense? Prob not
+    enabled = !enabled;
+    cout << "Echo on " << publishTopic() << " now " << (enabled ? "enabled" : "disabled") << endl;
+    res.enabled = enabled;
+    return true;
 }
 
 #endif //SIMPLE_ODOMETRY_OPT_ROS_ECHOPUBLISHER_H
