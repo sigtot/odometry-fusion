@@ -7,6 +7,13 @@
             output="screen"
     />
     <node
+            pkg="odometry_optimizer"
+            type="echo_node"
+            name="echo_node"
+            required="true"
+            output="screen"
+    />
+    <node
             pkg="rosbag"
             name="play"
             type="play"
