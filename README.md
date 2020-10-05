@@ -28,7 +28,9 @@ To export a bag of optimized poses to `rosbag/paths.bag`, run
 roslaunch odometry_optimizer record.launch
 ```
 
-## Plot `paths.bag` with python
+## Plot `paths.bag` with python (currently broken)
+__Currently broken due to paths being replaced with poses by the publishers__
+
 You will find python code for plotting in `/plots`.
 ### Setup
 Install extra dependencies with
