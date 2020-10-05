@@ -7,23 +7,10 @@
             output="screen"
     />
     <node
-            pkg="odometry_optimizer"
-            type="echo_node"
-            name="echo_node"
-            required="true"
-            output="screen"
-    />
-    <node
             pkg="rosbag"
             name="play"
             type="play"
-            args="$(find odometry_optimizer)/rosbag/odometries.bag --clock"
-    />
-    <node
-            pkg="rosbag"
-            name="record"
-            type="record"
-            args="-O $(find odometry_optimizer)/rosbag/paths.bag '\/echo\/(.*)|\/tf'|\/optimized_pose"
+            args="$(find odometry_optimizer)/rosbag/failure_rovio.bag --clock"
     />
     <node pkg="tf" type="static_transform_publisher" name="tf_lidar_cam" respawn="true"
           args="0.143373033912513 0.001844679769965 -0.152734883569140 -1.563483662924555 -0.001122948541060 -1.755796784911929 /velodyne /cam_blackfly 10"/>
