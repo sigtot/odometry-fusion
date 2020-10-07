@@ -21,7 +21,7 @@ void ISAMOptimizer::recvRovioOdometryAndPublishUpdatedPoses(const nav_msgs::Odom
     incrementTime(msg.header.stamp);
     auto odometry = toPose3(msg.pose.pose);
     if (poseNum > 1) {
-        auto odometryDelta = lastIMUOdometry.between(odometry);
+        auto odometryDelta = lastRovioOdometry.between(odometry);
         auto odometryNoise = noiseModel::Gaussian::Covariance(toGtsamMatrix(msg.pose.covariance));
         graph.add(BetweenFactor<Pose3>(Symbol('x', poseNum - 1), Symbol('x', poseNum), odometryDelta, odometryNoise));
     } else {
@@ -34,17 +34,17 @@ void ISAMOptimizer::recvRovioOdometryAndPublishUpdatedPoses(const nav_msgs::Odom
     initialEstimate.insert(Symbol('x', poseNum), odometry);
     isam.update(graph, initialEstimate);
     publishNewestPose();
-    lastIMUOdometry = odometry;
+    lastRovioOdometry = odometry;
     mu.unlock();
 }
 
 void ISAMOptimizer::recvLidarOdometryAndPublishUpdatedPoses(const nav_msgs::Odometry &msg) {
     Pose3 TLidarCam(Rot3(0.4536309, -0.4497171, -0.5423084, -0.5457794),
                     Point3(0.143373, 0.001844, -0.1527348));
-    Pose3 TCamIMU(Rot3(-0.4533646, -0.4579341, 0.5381071, 0.5433209),
-                  Point3(0.0017640, -0.05114066, -0.0423020));
+    Pose3 TCamRovio(Rot3(-0.4533646, -0.4579341, 0.5381071, 0.5433209),
+                    Point3(0.0017640, -0.05114066, -0.0423020));
     mu.lock();
-    auto odometry = TCamIMU.compose(TLidarCam).compose(toPose3(msg.pose.pose));
+    auto odometry = TCamRovio.compose(TLidarCam).compose(toPose3(msg.pose.pose));
     if (lastLidarPoseNum > 1) {
         auto odometryDelta = lastLidarOdometry.between(odometry);
         auto odometryNoise = noiseModel::Diagonal::Sigmas(Vector6(0.2, 0.2, 0.2, 0.2, 0.2, 0.2));

@@ -17,7 +17,7 @@ private:
     ros::Publisher &pub;
     NonlinearISAM isam;
     NonlinearFactorGraph graph;
-    Pose3 lastIMUOdometry;
+    Pose3 lastRovioOdometry;
     Pose3 lastLidarOdometry;
     vector<ros::Time> timestamps;
     int lastLidarPoseNum = 1;
