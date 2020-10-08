@@ -77,15 +77,23 @@ void ISAMOptimizer::recvRovioOdometryAndPublishUpdatedPoses(const nav_msgs::Odom
 
     incrementTime(msg.header.stamp);
 
+    NavState imuState = imuMeasurements->predict(prevIMUState, imuBias::ConstantBias());
     if (lastRovioPoseNum > 0) {
         auto odometryDelta = lastRovioOdometry.between(odometry);
         auto odometryNoise = noiseModel::Gaussian::Covariance(toGtsamMatrix(msg.pose.covariance));
-        graph.add(BetweenFactor<Pose3>(Symbol('x', lastRovioPoseNum), Symbol('x', poseNum), odometryDelta, odometryNoise));
+        graph.add(BetweenFactor<Pose3>(Symbol('x', lastRovioPoseNum), Symbol('x', poseNum), odometryDelta,
+                                       odometryNoise));
     }
 
-    NavState imuState = imuMeasurements->predict(prevIMUState, imuBias::ConstantBias());
     Values initialEstimate;
     initialEstimate.insert(Symbol('x', poseNum), imuState.pose()); // Initialize on imu measurement.
+
+    if (poseNum > 1) {
+        auto imuDelta = imuState.pose().between(prevIMUState.pose());
+        auto imuNoise = noiseModel::Diagonal::Sigmas(Vector6(0.2, 0.2, 0.2, 0.2, 0.2, 0.2));
+        graph.add(BetweenFactor<Pose3>(Symbol('x', poseNum - 1), Symbol('x', poseNum), imuDelta, imuNoise));
+    }
+
     isam.update(graph, initialEstimate);
     prevIMUState = NavState(initialEstimate.at<Pose3>(Symbol('x', poseNum)), Vector3());
     publishNewestPose();
@@ -114,15 +122,27 @@ void ISAMOptimizer::recvLidarOdometryAndPublishUpdatedPoses(const nav_msgs::Odom
 
     incrementTime(msg.header.stamp);
 
+    NavState imuState = imuMeasurements->predict(prevIMUState, imuBias::ConstantBias());
     if (lastLidarPoseNum > 0) {
         auto odometryDelta = lastLidarOdometry.between(odometry);
-        auto odometryNoise = noiseModel::Diagonal::Sigmas(Vector6(0.2, 0.2, 0.2, 0.2, 0.2, 0.2));
+        auto odometryNoise = noiseModel::Diagonal::Sigmas(Vector6(0.002, 0.002, 0.002, 0.002, 0.002, 0.002));
         graph.add(BetweenFactor<Pose3>(Symbol('x', lastLidarPoseNum), Symbol('x', poseNum), odometryDelta,
                                        odometryNoise));
+
+        auto imuDelta = imuState.pose().between(prevIMUState.pose());
+        auto imuNoise = noiseModel::Diagonal::Sigmas(Vector6(0.2, 0.2, 0.2, 0.2, 0.2, 0.2));
+        graph.add(BetweenFactor<Pose3>(Symbol('x', poseNum - 1), Symbol('x', poseNum), imuDelta, imuNoise));
     }
-    NavState imuState = imuMeasurements->predict(prevIMUState, imuBias::ConstantBias());
+
     Values initialEstimate;
     initialEstimate.insert(Symbol('x', poseNum), imuState.pose()); // Initialize on imu measurement.
+
+    if (poseNum > 1) {
+        auto imuDelta = imuState.pose().between(prevIMUState.pose());
+        auto imuNoise = noiseModel::Diagonal::Sigmas(Vector6(0.2, 0.2, 0.2, 0.2, 0.2, 0.2));
+        graph.add(BetweenFactor<Pose3>(Symbol('x', poseNum - 1), Symbol('x', poseNum), imuDelta, imuNoise));
+    }
+
     isam.update(graph, initialEstimate);
     prevIMUState = NavState(initialEstimate.at<Pose3>(Symbol('x', poseNum)), Vector3());
     publishNewestPose();
