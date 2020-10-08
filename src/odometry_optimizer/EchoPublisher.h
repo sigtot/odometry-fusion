@@ -23,6 +23,8 @@ private:
 public:
     EchoPublisher(const string &topic, ros::NodeHandle &nh);
 
+    void enable();
+    void disable();
     bool toggleEnabled(odometry_optimizer::ToggleEcho::Request &req,
                        odometry_optimizer::ToggleEcho::Response &res);
 };
@@ -55,6 +57,16 @@ bool EchoPublisher<T>::toggleEnabled(odometry_optimizer::ToggleEcho::Request &re
     cout << "Echo on " << publishTopic() << " now " << (enabled ? "enabled" : "disabled") << endl;
     res.enabled = enabled;
     return true;
+}
+
+template<class T>
+void EchoPublisher<T>::enable() {
+    enabled = true;
+}
+
+template<class T>
+void EchoPublisher<T>::disable() {
+    enabled = false;
 }
 
 #endif //SIMPLE_ODOMETRY_OPT_ROS_ECHOPUBLISHER_H

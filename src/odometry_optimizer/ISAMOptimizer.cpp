@@ -62,48 +62,71 @@ void ISAMOptimizer::recvIMUAndUpdateState(const sensor_msgs::Imu &msg) {
 
 void ISAMOptimizer::recvRovioOdometryAndPublishUpdatedPoses(const nav_msgs::Odometry &msg) {
     mu.lock();
-    incrementTime(msg.header.stamp);
-    NavState imuState = imuMeasurements->predict(prevIMUState, imuBias::ConstantBias());
+
+    /* TODO: Composing with this makes the path look very wrong. Flipped 90 degrees. Is the transform already computed?
     Pose3 TCamIMU(Rot3(-0.4533646, -0.4579341, 0.5381071, 0.5433209),
                   Point3(0.0017640, -0.05114066, -0.0423020));
-    auto odometry = TCamIMU.compose(toPose3(msg.pose.pose));
-    if (poseNum > 1) {
-        auto odometryDelta = lastRovioOdometry.between(odometry);
-        auto odometryNoise = noiseModel::Gaussian::Covariance(toGtsamMatrix(msg.pose.covariance));
-        graph.add(BetweenFactor<Pose3>(Symbol('x', poseNum - 1), Symbol('x', poseNum), odometryDelta, odometryNoise));
-    } else {
+                  */
+    auto odometry = toPose3(msg.pose.pose);
+    if (poseNum == 0) {
         // We need to add a prior in the first iteration
         auto priorNoise = noiseModel::Diagonal::Sigmas(Vector6(0.3, 0.3, 0.3, 0.3, 0.3, 0.3));
-        graph.add(PriorFactor<Pose3>(Symbol('x', 1), imuState.pose(), priorNoise));
+        graph.add(PriorFactor<Pose3>(Symbol('x', 1), odometry, priorNoise)); // Init first pose on rovio odometry
+        prevIMUState = NavState(odometry, Vector3()); // Init prev imu state here as well
     }
 
+    incrementTime(msg.header.stamp);
+
+    if (lastRovioPoseNum > 0) {
+        auto odometryDelta = lastRovioOdometry.between(odometry);
+        auto odometryNoise = noiseModel::Gaussian::Covariance(toGtsamMatrix(msg.pose.covariance));
+        graph.add(BetweenFactor<Pose3>(Symbol('x', lastRovioPoseNum), Symbol('x', poseNum), odometryDelta, odometryNoise));
+    }
+
+    NavState imuState = imuMeasurements->predict(prevIMUState, imuBias::ConstantBias());
     Values initialEstimate;
     initialEstimate.insert(Symbol('x', poseNum), imuState.pose()); // Initialize on imu measurement.
     isam.update(graph, initialEstimate);
     prevIMUState = NavState(initialEstimate.at<Pose3>(Symbol('x', poseNum)), Vector3());
     publishNewestPose();
-    lastRovioOdometry = odometry;
     resetIMUIntegrator();
+    lastRovioOdometry = odometry;
+    lastRovioPoseNum = poseNum;
     mu.unlock();
 }
 
 void ISAMOptimizer::recvLidarOdometryAndPublishUpdatedPoses(const nav_msgs::Odometry &msg) {
+    mu.lock();
+    auto odometry = toPose3(msg.pose.pose);
+    if (poseNum == 0) {
+        // We need to add a prior in the first iteration
+        auto priorNoise = noiseModel::Diagonal::Sigmas(Vector6(0.3, 0.3, 0.3, 0.3, 0.3, 0.3));
+        graph.add(PriorFactor<Pose3>(Symbol('x', 1), odometry, priorNoise)); // Init first pose on lidar odometry
+        prevIMUState = NavState(odometry, Vector3()); // Init prev imu state here as well
+    }
+    /*
     Pose3 TLidarCam(Rot3(0.4536309, -0.4497171, -0.5423084, -0.5457794),
                     Point3(0.143373, 0.001844, -0.1527348));
     Pose3 TCamIMU(Rot3(-0.4533646, -0.4579341, 0.5381071, 0.5433209),
                   Point3(0.0017640, -0.05114066, -0.0423020));
-    mu.lock();
-    auto odometry = TCamIMU.compose(TLidarCam).compose(toPose3(msg.pose.pose));
-    if (lastLidarPoseNum > 1) {
+                  */
+    // TODO: we need a lastLidarPoseNum and a lastRovioPoseNum for them to connect factors between
+
+    incrementTime(msg.header.stamp);
+
+    if (lastLidarPoseNum > 0) {
         auto odometryDelta = lastLidarOdometry.between(odometry);
         auto odometryNoise = noiseModel::Diagonal::Sigmas(Vector6(0.2, 0.2, 0.2, 0.2, 0.2, 0.2));
         graph.add(BetweenFactor<Pose3>(Symbol('x', lastLidarPoseNum), Symbol('x', poseNum), odometryDelta,
                                        odometryNoise));
-
-        Values initialEstimate;
-        isam.update(graph, initialEstimate); // Naive implementation: Do not add a new value
-        publishNewestPose();
     }
+    NavState imuState = imuMeasurements->predict(prevIMUState, imuBias::ConstantBias());
+    Values initialEstimate;
+    initialEstimate.insert(Symbol('x', poseNum), imuState.pose()); // Initialize on imu measurement.
+    isam.update(graph, initialEstimate);
+    prevIMUState = NavState(initialEstimate.at<Pose3>(Symbol('x', poseNum)), Vector3());
+    publishNewestPose();
+    resetIMUIntegrator();
     lastLidarOdometry = odometry;
     lastLidarPoseNum = poseNum;
     mu.unlock();

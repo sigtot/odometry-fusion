@@ -26,7 +26,8 @@ private:
     int imuCount = 0;
     NavState prevIMUState;
     vector<ros::Time> timestamps;
-    int lastLidarPoseNum = 1;
+    int lastRovioPoseNum = 0;
+    int lastLidarPoseNum = 0;
     int poseNum = 0;
     mutex mu;
 public:
