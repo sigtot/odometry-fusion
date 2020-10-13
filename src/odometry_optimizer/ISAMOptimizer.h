@@ -7,6 +7,7 @@
 #include <sensor_msgs/Imu.h>
 #include <nav_msgs/Odometry.h>
 #include <gtsam/nonlinear/NonlinearISAM.h>
+#include <gtsam/nonlinear/ISAM2.h>
 #include <gtsam/geometry/Pose3.h>
 #include <gtsam/navigation/ImuFactor.h>
 #include <boost/noncopyable.hpp>
@@ -17,7 +18,7 @@ using namespace std;
 class ISAMOptimizer: public boost::noncopyable {
 private:
     ros::Publisher &pub;
-    NonlinearISAM isam;
+    ISAM2 isam;
     NonlinearFactorGraph graph;
     Pose3 lastRovioOdometry;
     Pose3 lastLidarOdometry;
@@ -31,7 +32,7 @@ private:
     int poseNum = 0;
     mutex mu;
 public:
-    ISAMOptimizer(ros::Publisher *pub, int reorderInterval);
+    explicit ISAMOptimizer(ros::Publisher *pub);
 
     void recvIMUAndUpdateState(const sensor_msgs::Imu &msg);
     void recvRovioOdometryAndPublishUpdatedPoses(const nav_msgs::Odometry &msg);

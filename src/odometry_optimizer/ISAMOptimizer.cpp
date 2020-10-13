@@ -11,10 +11,16 @@
 #include <geometry_msgs/PoseWithCovariance.h>
 #include <nav_msgs/Odometry.h>
 #include <boost/optional/optional_io.hpp>
+#include <gtsam/nonlinear/ISAM2Params.h>
 
-ISAMOptimizer::ISAMOptimizer(ros::Publisher *pub,
-                             int reorderInterval) : pub(*pub),
-                                                    isam(NonlinearISAM(reorderInterval)) {
+ISAM2Params getParams() {
+    ISAM2Params isam2Params;
+    isam2Params.relinearizeThreshold = 0.1;
+    isam2Params.factorization = ISAM2Params::CHOLESKY;
+}
+
+ISAMOptimizer::ISAMOptimizer(ros::Publisher *pub) : pub(*pub),
+                                                    isam(ISAM2(ISAM2Params())) {
     auto imu_params = PreintegratedImuMeasurements::Params::MakeSharedU(9.81);
     Matrix3 eye3;
     eye3 << 1, 0, 0,
@@ -155,7 +161,7 @@ void ISAMOptimizer::recvLidarOdometryAndPublishUpdatedPoses(const nav_msgs::Odom
 void ISAMOptimizer::publishUpdatedPoses() {
     nav_msgs::Path pathMsg;
     for (int j = 1; j < poseNum; ++j) {
-        auto pose = isam.estimate().at<Pose3>(Symbol('x', j));
+        auto pose = isam.calculateEstimate<Pose3>(Symbol('x', j));
         auto stamp = timestamps[j];
         auto stampedPose = createStampedPoseMsg(pose, stamp);
         stampedPose.header.frame_id = "world";
@@ -167,7 +173,7 @@ void ISAMOptimizer::publishUpdatedPoses() {
 }
 
 void ISAMOptimizer::publishNewestPose() {
-    Pose3 newPose = isam.estimate().at<Pose3>(Symbol('x', poseNum));
+    auto newPose = isam.calculateEstimate<Pose3>(Symbol('x', poseNum));
     nav_msgs::Odometry msg;
     msg.pose.pose = toPoseMsg(newPose);
     msg.header.frame_id = "world";
