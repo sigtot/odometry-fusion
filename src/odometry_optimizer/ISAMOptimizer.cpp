@@ -10,8 +10,9 @@
 #include <nav_msgs/Path.h>
 #include <geometry_msgs/PoseWithCovariance.h>
 #include <nav_msgs/Odometry.h>
-#include <boost/optional/optional_io.hpp>
 #include <gtsam/nonlinear/ISAM2Params.h>
+#include <iostream>
+#include <chrono>
 
 ISAM2Params getParams() {
     ISAM2Params isam2Params;
@@ -100,12 +101,18 @@ void ISAMOptimizer::recvRovioOdometryAndPublishUpdatedPoses(const nav_msgs::Odom
         graph.add(BetweenFactor<Pose3>(Symbol('x', poseNum - 1), Symbol('x', poseNum), imuDelta, imuNoise));
     }
 
+    auto start = chrono::system_clock::now();
     isam.update(graph, initialEstimate);
+    auto end = chrono::system_clock::now();
+    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+    cout << poseNum << ": Rovio ISAM Update time = " << elapsed.count() << "ms" << '\n';
+
     prevIMUState = NavState(initialEstimate.at<Pose3>(Symbol('x', poseNum)), Vector3());
     publishNewestPose();
     resetIMUIntegrator();
     lastRovioOdometry = odometry;
     lastRovioPoseNum = poseNum;
+    graph.resize(0);
     mu.unlock();
 }
 
@@ -149,12 +156,18 @@ void ISAMOptimizer::recvLidarOdometryAndPublishUpdatedPoses(const nav_msgs::Odom
         graph.add(BetweenFactor<Pose3>(Symbol('x', poseNum - 1), Symbol('x', poseNum), imuDelta, imuNoise));
     }
 
+    auto start = chrono::system_clock::now();
     isam.update(graph, initialEstimate);
+    auto end = chrono::system_clock::now();
+    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+    cout << poseNum << ": Lidar ISAM Update time = " << elapsed.count() << "ms" << '\n';
+
     prevIMUState = NavState(initialEstimate.at<Pose3>(Symbol('x', poseNum)), Vector3());
     publishNewestPose();
     resetIMUIntegrator();
     lastLidarOdometry = odometry;
     lastLidarPoseNum = poseNum;
+    graph.resize(0);
     mu.unlock();
 }
 
