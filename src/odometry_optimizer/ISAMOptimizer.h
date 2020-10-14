@@ -31,6 +31,7 @@ private:
     int lastLidarPoseNum = 0;
     int poseNum = 0;
     mutex mu;
+    void recvOdometryAndPublishUpdatedPoses(const nav_msgs::Odometry &msg, int &lastPoseNum, Pose3 &lastOdometry, const boost::shared_ptr<noiseModel::Gaussian>& noise);
 public:
     explicit ISAMOptimizer(ros::Publisher *pub);
 
