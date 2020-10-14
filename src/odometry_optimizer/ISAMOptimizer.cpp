@@ -30,11 +30,11 @@ ISAMOptimizer::ISAMOptimizer(ros::Publisher *pub) : pub(*pub),
     eye3 << 1, 0, 0,
             0, 1, 0,
             0, 0, 1;
-    imu_params->accelerometerCovariance = eye3 * 0.001;
-    imu_params->integrationCovariance = eye3 * 0.001;
-    imu_params->gyroscopeCovariance = eye3 * 0.001;
-    imu_params->omegaCoriolis = Vector3::Zero();
-    auto imuBias = imuBias::ConstantBias(); // Assume zero bias
+    imu_params->accelerometerCovariance = eye3 * 0.14; // mg/sqrt(Hz)
+    imu_params->integrationCovariance = eye3 * 0.001; // don't know
+    imu_params->gyroscopeCovariance = eye3 * 0.0035 * 3.14 / 180; // rad/s/sqrt(Hz)
+    imu_params->omegaCoriolis = Vector3::Zero(); // don't know
+    auto imuBias = imuBias::ConstantBias(); // Initialize at zero bias
     imuMeasurements = std::make_shared<PreintegratedImuMeasurements>(imu_params, imuBias);
     Rot3 priorRot = Rot3::Quaternion(1, 0, 0, 0);
     Point3 priorPoint(0, 0, 0);
