@@ -12,7 +12,6 @@
 #include <nav_msgs/Odometry.h>
 #include <gtsam/nonlinear/ISAM2Params.h>
 #include <iostream>
-#include <chrono>
 
 ISAM2Params getParams() {
     ISAM2Params isam2Params;
@@ -101,12 +100,7 @@ void ISAMOptimizer::recvRovioOdometryAndPublishUpdatedPoses(const nav_msgs::Odom
         graph.add(BetweenFactor<Pose3>(Symbol('x', poseNum - 1), Symbol('x', poseNum), imuDelta, imuNoise));
     }
 
-    auto start = chrono::system_clock::now();
     isam.update(graph, initialEstimate);
-    auto end = chrono::system_clock::now();
-    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-    cout << poseNum << ": Rovio ISAM Update time = " << elapsed.count() << "ms" << '\n';
-
     prevIMUState = NavState(initialEstimate.at<Pose3>(Symbol('x', poseNum)), Vector3());
     publishNewestPose();
     resetIMUIntegrator();
@@ -138,7 +132,7 @@ void ISAMOptimizer::recvLidarOdometryAndPublishUpdatedPoses(const nav_msgs::Odom
     NavState imuState = imuMeasurements->predict(prevIMUState, imuBias::ConstantBias());
     if (lastLidarPoseNum > 0) {
         auto odometryDelta = lastLidarOdometry.between(odometry);
-        auto odometryNoise = noiseModel::Diagonal::Sigmas(Vector6(0.002, 0.002, 0.002, 0.002, 0.002, 0.002));
+        auto odometryNoise = noiseModel::Diagonal::Sigmas(Vector6(0.002, 0.002, 0.002, 0.002, 0.002, 0.002)); // increase this again
         graph.add(BetweenFactor<Pose3>(Symbol('x', lastLidarPoseNum), Symbol('x', poseNum), odometryDelta,
                                        odometryNoise));
 
@@ -156,12 +150,7 @@ void ISAMOptimizer::recvLidarOdometryAndPublishUpdatedPoses(const nav_msgs::Odom
         graph.add(BetweenFactor<Pose3>(Symbol('x', poseNum - 1), Symbol('x', poseNum), imuDelta, imuNoise));
     }
 
-    auto start = chrono::system_clock::now();
     isam.update(graph, initialEstimate);
-    auto end = chrono::system_clock::now();
-    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-    cout << poseNum << ": Lidar ISAM Update time = " << elapsed.count() << "ms" << '\n';
-
     prevIMUState = NavState(initialEstimate.at<Pose3>(Symbol('x', poseNum)), Vector3());
     publishNewestPose();
     resetIMUIntegrator();
