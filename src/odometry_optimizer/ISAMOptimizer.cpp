@@ -13,6 +13,10 @@
 #include <gtsam/nonlinear/ISAM2Params.h>
 #include <iostream>
 
+using symbol_shorthand::B;  // Bias  (ax,ay,az,gx,gy,gz)
+using symbol_shorthand::V;  // Vel   (xdot,ydot,zdot)
+using symbol_shorthand::X;  // Pose3 (x,y,z,r,p,y)
+
 ISAM2Params getParams() {
     ISAM2Params isam2Params;
     isam2Params.relinearizeThreshold = 0.1;
@@ -61,6 +65,7 @@ void ISAMOptimizer::recvIMUAndUpdateState(const sensor_msgs::Imu &msg) {
     auto angularMsg = msg.angular_velocity;
     auto omega = Vector3(angularMsg.x, angularMsg.y, angularMsg.z);
     imuMeasurements->integrateMeasurement(acc, omega, dt.toSec());
+    // add to buffer
     imuCount++;
     lastIMUTime = imuTime;
     mu.unlock();
@@ -69,7 +74,7 @@ void ISAMOptimizer::recvIMUAndUpdateState(const sensor_msgs::Imu &msg) {
 void ISAMOptimizer::publishUpdatedPoses() {
     nav_msgs::Path pathMsg;
     for (int j = 1; j < poseNum; ++j) {
-        auto pose = isam.calculateEstimate<Pose3>(Symbol('x', j));
+        auto pose = isam.calculateEstimate<Pose3>(X(j));
         auto stamp = timestamps[j];
         auto stampedPose = createStampedPoseMsg(pose, stamp);
         stampedPose.header.frame_id = "world";
@@ -81,7 +86,7 @@ void ISAMOptimizer::publishUpdatedPoses() {
 }
 
 void ISAMOptimizer::publishNewestPose() {
-    auto newPose = isam.calculateEstimate<Pose3>(Symbol('x', poseNum));
+    auto newPose = isam.calculateEstimate<Pose3>(X(poseNum));
     nav_msgs::Odometry msg;
     msg.pose.pose = toPoseMsg(newPose);
     msg.header.frame_id = "world";
@@ -119,7 +124,7 @@ ISAMOptimizer::recvOdometryAndPublishUpdatedPoses(const nav_msgs::Odometry &msg,
     if (poseNum == 0) {
         // We need to add a prior in the first iteration
         auto priorNoise = noiseModel::Diagonal::Sigmas(Vector6(0.3, 0.3, 0.3, 0.3, 0.3, 0.3));
-        graph.add(PriorFactor<Pose3>(Symbol('x', 1), odometry, priorNoise)); // Init first pose on rovio odometry
+        graph.add(PriorFactor<Pose3>(X(1), odometry, priorNoise)); // Init first pose on rovio odometry
         prevIMUState = NavState(odometry, Vector3::Zero()); // Init prev imu state here as well
     }
 
@@ -128,20 +133,20 @@ ISAMOptimizer::recvOdometryAndPublishUpdatedPoses(const nav_msgs::Odometry &msg,
     NavState imuState = imuMeasurements->predict(prevIMUState, imuBias::ConstantBias());
     if (lastPoseNum > 0) {
         auto odometryDelta = lastOdometry.between(odometry);
-        graph.add(BetweenFactor<Pose3>(Symbol('x', lastPoseNum), Symbol('x', poseNum), odometryDelta, noise));
+        graph.add(BetweenFactor<Pose3>(X(lastPoseNum), X(poseNum), odometryDelta, noise));
     }
 
     Values initialEstimate;
-    initialEstimate.insert(Symbol('x', poseNum), imuState.pose()); // Initialize on imu measurement.
+    initialEstimate.insert(X(poseNum), imuState.pose()); // Initialize on imu measurement.
 
     if (poseNum > 1) {
         auto imuDelta = imuState.pose().between(prevIMUState.pose());
-        auto imuNoise = noiseModel::Diagonal::Sigmas(Vector6(0.2, 0.2, 0.2, 0.2, 0.2, 0.2));
-        graph.add(BetweenFactor<Pose3>(Symbol('x', poseNum - 1), Symbol('x', poseNum), imuDelta, imuNoise));
+        auto imuNoise = noiseModel::Diagonal::Sigmas(Vector6(0.002, 0.002, 0.002, 0.002, 0.002, 0.002));
+        graph.add(BetweenFactor<Pose3>(X(poseNum - 1), X(poseNum), imuDelta, imuNoise));
     }
 
     isam.update(graph, initialEstimate);
-    prevIMUState = NavState(initialEstimate.at<Pose3>(Symbol('x', poseNum)), Vector3::Zero());
+    prevIMUState = NavState(initialEstimate.at<Pose3>(X(poseNum)), Vector3::Zero());
     publishNewestPose();
     resetIMUIntegrator();
     lastOdometry = odometry;
