@@ -32,14 +32,18 @@ private:
     int lastLidarPoseNum = 0;
     int poseNum = 0;
     mutex mu;
-    void recvOdometryAndPublishUpdatedPoses(const Pose3 &odometry, int &lastPoseNum, Pose3 &lastOdometry, const boost::shared_ptr<noiseModel::Gaussian>& noise);
 public:
     explicit ISAMOptimizer(ros::Publisher *pub);
 
     void recvIMUMsgAndUpdateState(const sensor_msgs::Imu &msg);
     void recvIMUAndUpdateState(const Vector3& acc, const Vector3& omega, ros::Time imuTime);
-    void recvRovioOdometryAndPublishUpdatedPoses(const nav_msgs::Odometry &msg);
-    void recvLidarOdometryAndPublishUpdatedPoses(const nav_msgs::Odometry &msg);
+
+    void recvRovioOdometryMsgAndPublishUpdatedPoses(const nav_msgs::Odometry &msg);
+    void recvLidarOdometryMsgAndPublishUpdatedPoses(const nav_msgs::Odometry &msg);
+    void recvRovioOdometryAndPublishUpdatedPoses(const Pose3 &odometry, const boost::shared_ptr<noiseModel::Gaussian>& noise);
+    void recvLidarOdometryAndPublishUpdatedPoses(const Pose3 &odometry, const boost::shared_ptr<noiseModel::Gaussian>& noise);
+    void recvOdometryAndPublishUpdatedPoses(const Pose3 &odometry, int &lastPoseNum, Pose3 &lastOdometry, const boost::shared_ptr<noiseModel::Gaussian>& noise);
+
     void publishUpdatedPoses();
     void publishNewestPose();
     void incrementTime(const ros::Time &stamp);

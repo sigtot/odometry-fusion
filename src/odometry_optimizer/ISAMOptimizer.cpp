@@ -113,18 +113,24 @@ void ISAMOptimizer::resetIMUIntegrator() {
     imuMeasurements->resetIntegration();
 }
 
-void ISAMOptimizer::recvRovioOdometryAndPublishUpdatedPoses(const nav_msgs::Odometry &msg) {
+void ISAMOptimizer::recvRovioOdometryMsgAndPublishUpdatedPoses(const nav_msgs::Odometry &msg) {
     mu.lock();
-    recvOdometryAndPublishUpdatedPoses(toPose3(msg.pose.pose), lastRovioPoseNum, lastRovioOdometry,
-                                       noiseModel::Gaussian::Covariance(toGtsamMatrix(msg.pose.covariance)));
+    recvRovioOdometryAndPublishUpdatedPoses(toPose3(msg.pose.pose), noiseModel::Gaussian::Covariance(toGtsamMatrix(msg.pose.covariance)));
     mu.unlock();
 }
 
-void ISAMOptimizer::recvLidarOdometryAndPublishUpdatedPoses(const nav_msgs::Odometry &msg) {
+void ISAMOptimizer::recvLidarOdometryMsgAndPublishUpdatedPoses(const nav_msgs::Odometry &msg) {
     mu.lock();
-    recvOdometryAndPublishUpdatedPoses(toPose3(msg.pose.pose), lastLidarPoseNum, lastLidarOdometry,
-                                       noiseModel::Diagonal::Sigmas(Vector6(0.02, 0.02, 0.02, 0.02, 0.02, 0.02)));
+    recvLidarOdometryAndPublishUpdatedPoses(toPose3(msg.pose.pose), noiseModel::Diagonal::Sigmas(Vector6(0.02, 0.02, 0.02, 0.02, 0.02, 0.02)));
     mu.unlock();
+}
+
+void ISAMOptimizer::recvRovioOdometryAndPublishUpdatedPoses(const Pose3 &odometry, const boost::shared_ptr<noiseModel::Gaussian> & noise) {
+    recvOdometryAndPublishUpdatedPoses(odometry, lastRovioPoseNum, lastRovioOdometry, noise);
+}
+
+void ISAMOptimizer::recvLidarOdometryAndPublishUpdatedPoses(const Pose3 &odometry, const boost::shared_ptr<noiseModel::Gaussian> & noise) {
+    recvOdometryAndPublishUpdatedPoses(odometry, lastLidarPoseNum, lastLidarOdometry, noise);
 }
 
 void
