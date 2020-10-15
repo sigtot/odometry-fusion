@@ -11,7 +11,7 @@ int main(int argc, char **argv) {
     ros::NodeHandle nh;
     auto pub = nh.advertise<nav_msgs::Odometry>("/optimized_pose", 1000);
     ISAMOptimizer isamOptimizer(&pub);
-    ros::Subscriber subIMU = nh.subscribe("/vn100/imu", 1000, &ISAMOptimizer::recvIMUAndUpdateState, &isamOptimizer);
+    ros::Subscriber subIMU = nh.subscribe("/vn100/imu", 1000, &ISAMOptimizer::recvIMUMsgAndUpdateState, &isamOptimizer);
     ros::Subscriber subRovio = nh.subscribe("/echo/rovio/odometry", 1000,
                                             &ISAMOptimizer::recvRovioOdometryAndPublishUpdatedPoses, &isamOptimizer);
     ros::Subscriber subLidar = nh.subscribe("/echo/aft_mapped_to_init_CORRECTED", 1000,

@@ -25,8 +25,6 @@ include_directories(include ${catkin_INCLUDE_DIRS})
 
 add_executable(odometry_optimizer odometry_optimizer.cpp ISAMOptimizer.cpp ISAMOptimizer.h utils.cpp utils.h)
 target_link_libraries(odometry_optimizer gtsam ${catkin_LIBRARIES})
-add_dependencies(odometry_optimizer ${catkin_EXPORTED_TARGETS})
 
 add_executable(echo_node echo_node.cpp EchoPublisher.h)
 target_link_libraries(echo_node ${catkin_LIBRARIES})
-add_dependencies(echo_node ${catkin_EXPORTED_TARGETS})

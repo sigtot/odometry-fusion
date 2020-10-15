@@ -22,20 +22,22 @@ private:
     NonlinearFactorGraph graph;
     Pose3 lastRovioOdometry;
     Pose3 lastLidarOdometry;
-    std::shared_ptr<PreintegratedImuMeasurements> imuMeasurements;
+    std::shared_ptr<PreintegrationType> imuMeasurements;
     ros::Time lastIMUTime;
     int imuCount = 0;
     NavState prevIMUState;
+    imuBias::ConstantBias prevIMUBias;
     vector<ros::Time> timestamps;
     int lastRovioPoseNum = 0;
     int lastLidarPoseNum = 0;
     int poseNum = 0;
     mutex mu;
-    void recvOdometryAndPublishUpdatedPoses(const nav_msgs::Odometry &msg, int &lastPoseNum, Pose3 &lastOdometry, const boost::shared_ptr<noiseModel::Gaussian>& noise);
+    void recvOdometryAndPublishUpdatedPoses(const Pose3 &odometry, int &lastPoseNum, Pose3 &lastOdometry, const boost::shared_ptr<noiseModel::Gaussian>& noise);
 public:
     explicit ISAMOptimizer(ros::Publisher *pub);
 
-    void recvIMUAndUpdateState(const sensor_msgs::Imu &msg);
+    void recvIMUMsgAndUpdateState(const sensor_msgs::Imu &msg);
+    void recvIMUAndUpdateState(const Vector3& acc, const Vector3& omega, ros::Time imuTime);
     void recvRovioOdometryAndPublishUpdatedPoses(const nav_msgs::Odometry &msg);
     void recvLidarOdometryAndPublishUpdatedPoses(const nav_msgs::Odometry &msg);
     void publishUpdatedPoses();
