@@ -61,9 +61,9 @@ void ISAMOptimizer::recvIMUMsgAndUpdateState(const sensor_msgs::Imu &msg) {
 }
 
 void ISAMOptimizer::recvIMUAndUpdateState(const Vector3& acc, const Vector3& omega, ros::Time imuTime) {
-    if (imuCount == 0) {
+    if (!imuReady) {
         lastIMUTime = imuTime;
-        imuCount++;
+        imuReady = true;
         mu.unlock();
         return;
     }
@@ -111,10 +111,12 @@ void ISAMOptimizer::incrementTime(const ros::Time &stamp) {
 
 void ISAMOptimizer::resetIMUIntegrator() {
     imuMeasurements->resetIntegration();
+    imuCount = 0;
 }
 
 void ISAMOptimizer::recvRovioOdometryMsgAndPublishUpdatedPoses(const nav_msgs::Odometry &msg) {
     mu.lock();
+    // using covariance from rovio makes the trajectory all messed up
     recvRovioOdometryAndUpdateState(toPose3(msg.pose.pose), noiseModel::Gaussian::Covariance(toGtsamMatrix(msg.pose.covariance)));
     publishNewestPose();
     mu.unlock();
@@ -160,25 +162,30 @@ ISAMOptimizer::recvOdometryAndUpdateState(const Pose3 &odometry, int &lastPoseNu
         graph.add(BetweenFactor<Pose3>(X(lastPoseNum), X(poseNum), odometryDelta, noise));
     }
 
-    if (poseNum > 1) {
-        auto imuCombined = dynamic_cast<const PreintegratedCombinedMeasurements &>(*imuMeasurements);
-        CombinedImuFactor imuFactor(X(poseNum - 1), V(poseNum - 1), X(poseNum),
-                                    V(poseNum), B(poseNum - 1), B(poseNum),
-                                    imuCombined);
-        graph.add(imuFactor);
+
+    Values initialEstimate;
+    if (imuCount > 0) {
+        if (poseNum > 1) {
+            auto imuCombined = dynamic_cast<const PreintegratedCombinedMeasurements &>(*imuMeasurements);
+            CombinedImuFactor imuFactor(X(lastIMUPoseNum), V(lastIMUPoseNum), X(poseNum),
+                                        V(poseNum), B(lastIMUPoseNum), B(poseNum),
+                                        imuCombined);
+            graph.add(imuFactor);
+        }
+        NavState imuState = imuMeasurements->predict(prevIMUState, prevIMUBias);
+        initialEstimate.insert(X(poseNum), imuState.pose());
+        initialEstimate.insert(V(poseNum), imuState.v());
+        initialEstimate.insert(B(poseNum), prevIMUBias);
+    } else {
+        initialEstimate.insert(X(poseNum), isam.calculateEstimate(X(poseNum - 1))); // TODO might fail if poseNum !> 1
     }
 
-    NavState imuState = imuMeasurements->predict(prevIMUState, prevIMUBias);
-    Values initialEstimate;
-    initialEstimate.insert(X(poseNum), imuState.pose());
-    initialEstimate.insert(V(poseNum), imuState.v());
-    initialEstimate.insert(B(poseNum), prevIMUBias);
-
-    graph.print();
-
     isam.update(graph, initialEstimate);
-    prevIMUState = NavState(isam.calculateEstimate<Pose3>(X(poseNum)), isam.calculateEstimate<Vector3>(V(poseNum)));
-    prevIMUBias = isam.calculateEstimate<imuBias::ConstantBias>(B(poseNum));
+    if (imuCount > 0) {
+        prevIMUState = NavState(isam.calculateEstimate<Pose3>(X(poseNum)), isam.calculateEstimate<Vector3>(V(poseNum)));
+        prevIMUBias = isam.calculateEstimate<imuBias::ConstantBias>(B(poseNum));
+        lastIMUPoseNum = poseNum;
+    }
     resetIMUIntegrator();
     lastOdometry = odometry;
     lastPoseNum = poseNum;

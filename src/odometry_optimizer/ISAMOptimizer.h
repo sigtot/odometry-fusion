@@ -25,11 +25,13 @@ private:
     std::shared_ptr<PreintegrationType> imuMeasurements;
     ros::Time lastIMUTime;
     int imuCount = 0;
+    bool imuReady = false;
     NavState prevIMUState;
     imuBias::ConstantBias prevIMUBias;
     vector<ros::Time> timestamps;
     int lastRovioPoseNum = 0;
     int lastLidarPoseNum = 0;
+    int lastIMUPoseNum = 0;
     int poseNum = 0;
     mutex mu;
 public:
