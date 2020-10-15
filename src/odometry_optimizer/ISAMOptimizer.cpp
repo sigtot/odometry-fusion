@@ -115,26 +115,28 @@ void ISAMOptimizer::resetIMUIntegrator() {
 
 void ISAMOptimizer::recvRovioOdometryMsgAndPublishUpdatedPoses(const nav_msgs::Odometry &msg) {
     mu.lock();
-    recvRovioOdometryAndPublishUpdatedPoses(toPose3(msg.pose.pose), noiseModel::Gaussian::Covariance(toGtsamMatrix(msg.pose.covariance)));
+    recvRovioOdometryAndUpdateState(toPose3(msg.pose.pose), noiseModel::Gaussian::Covariance(toGtsamMatrix(msg.pose.covariance)));
+    publishNewestPose();
     mu.unlock();
 }
 
 void ISAMOptimizer::recvLidarOdometryMsgAndPublishUpdatedPoses(const nav_msgs::Odometry &msg) {
     mu.lock();
-    recvLidarOdometryAndPublishUpdatedPoses(toPose3(msg.pose.pose), noiseModel::Diagonal::Sigmas(Vector6(0.02, 0.02, 0.02, 0.02, 0.02, 0.02)));
+    recvLidarOdometryAndUpdateState(toPose3(msg.pose.pose), noiseModel::Diagonal::Sigmas(Vector6(0.02, 0.02, 0.02, 0.02, 0.02, 0.02)));
+    publishNewestPose();
     mu.unlock();
 }
 
-void ISAMOptimizer::recvRovioOdometryAndPublishUpdatedPoses(const Pose3 &odometry, const boost::shared_ptr<noiseModel::Gaussian> & noise) {
-    recvOdometryAndPublishUpdatedPoses(odometry, lastRovioPoseNum, lastRovioOdometry, noise);
+void ISAMOptimizer::recvRovioOdometryAndUpdateState(const Pose3 &odometry, const boost::shared_ptr<noiseModel::Gaussian> & noise) {
+    recvOdometryAndUpdateState(odometry, lastRovioPoseNum, lastRovioOdometry, noise);
 }
 
-void ISAMOptimizer::recvLidarOdometryAndPublishUpdatedPoses(const Pose3 &odometry, const boost::shared_ptr<noiseModel::Gaussian> & noise) {
-    recvOdometryAndPublishUpdatedPoses(odometry, lastLidarPoseNum, lastLidarOdometry, noise);
+void ISAMOptimizer::recvLidarOdometryAndUpdateState(const Pose3 &odometry, const boost::shared_ptr<noiseModel::Gaussian> & noise) {
+    recvOdometryAndUpdateState(odometry, lastLidarPoseNum, lastLidarOdometry, noise);
 }
 
 void
-ISAMOptimizer::recvOdometryAndPublishUpdatedPoses(const Pose3 &odometry, int &lastPoseNum, Pose3 &lastOdometry,
+ISAMOptimizer::recvOdometryAndUpdateState(const Pose3 &odometry, int &lastPoseNum, Pose3 &lastOdometry,
                                                   const boost::shared_ptr<noiseModel::Gaussian> &noise) {
     if (poseNum == 0) {
         // TODO just let this be poseNum == 1 and initialize at t=1 instead. This is just silly
@@ -177,7 +179,6 @@ ISAMOptimizer::recvOdometryAndPublishUpdatedPoses(const Pose3 &odometry, int &la
     isam.update(graph, initialEstimate);
     prevIMUState = NavState(isam.calculateEstimate<Pose3>(X(poseNum)), isam.calculateEstimate<Vector3>(V(poseNum)));
     prevIMUBias = isam.calculateEstimate<imuBias::ConstantBias>(B(poseNum));
-    publishNewestPose();
     resetIMUIntegrator();
     lastOdometry = odometry;
     lastPoseNum = poseNum;
