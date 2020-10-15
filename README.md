@@ -58,3 +58,10 @@ rosservice call /toggle_rovio
 rosservice call /toggle_lidar
 ```
 As the service names imply, this toggles the streams, so to turn them on again simply run the command once more.
+
+
+## Running tests
+Run tests with 
+```bash
+catkin_make run_tests
+```
