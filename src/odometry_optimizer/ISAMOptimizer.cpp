@@ -33,6 +33,7 @@ ISAMOptimizer::ISAMOptimizer(ros::Publisher *pub) : pub(*pub),
     eye3 << 1, 0, 0,
             0, 1, 0,
             0, 0, 1;
+    // TODO these should be squared I think
     imu_params->accelerometerCovariance = eye3 * 0.14; // mg/sqrt(Hz)
     imu_params->integrationCovariance = eye3 * 0.001; // don't know
     imu_params->gyroscopeCovariance = eye3 * 0.0035 * 3.14 / 180; // rad/s/sqrt(Hz)

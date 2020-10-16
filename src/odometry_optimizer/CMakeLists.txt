@@ -1,12 +1,13 @@
 cmake_minimum_required(VERSION 3.10)
 project(odometry_optimizer)
 
-find_package(catkin REQUIRED)
 find_package(GTSAM REQUIRED)
+find_package(Boost REQUIRED COMPONENTS chrono)
 
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   message_generation
+  std_msgs
 )
 
 add_service_files(
@@ -19,9 +20,11 @@ generate_messages(
   std_msgs
 )
 
-catkin_package()
+catkin_package(
+  CATKIN_DEPENDS message_runtime std_msgs
+)
 
-include_directories(include ${catkin_INCLUDE_DIRS})
+include_directories(include ${catkin_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS} ${GTSAM_INCLUDE_DIRS})
 
 add_executable(odometry_optimizer odometry_optimizer.cpp ISAMOptimizer.cpp ISAMOptimizer.h utils.cpp utils.h)
 target_link_libraries(odometry_optimizer gtsam ${catkin_LIBRARIES})
