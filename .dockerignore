@@ -1,0 +1,5 @@
+devel
+build
+.git
+src/CMakeLists.txt
+src/odometry_optimizer/rosbag
