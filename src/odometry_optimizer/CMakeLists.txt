@@ -32,5 +32,7 @@ target_link_libraries(odometry_optimizer gtsam ${catkin_LIBRARIES})
 add_executable(echo_node echo_node.cpp EchoPublisher.h)
 target_link_libraries(echo_node ${catkin_LIBRARIES})
 
+add_dependencies(echo_node odometry_optimizer_generate_messages_cpp)
+
 catkin_add_gtest(odo_tests test/odo_tests.cpp ISAMOptimizer.cpp ISAMOptimizer.h utils.cpp utils.h)
 target_link_libraries(odo_tests gtsam ${catkin_LIBRARIES})
