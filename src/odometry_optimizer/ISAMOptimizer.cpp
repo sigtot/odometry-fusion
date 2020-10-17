@@ -117,7 +117,7 @@ void ISAMOptimizer::resetIMUIntegrator() {
 
 void ISAMOptimizer::recvRovioOdometryMsgAndPublishUpdatedPoses(const nav_msgs::Odometry &msg) {
     mu.lock();
-    // using covariance from rovio makes the trajectory all messed up
+    // using covariance from rovio makes the trajectory all messed up TODO: Don't use it
     recvRovioOdometryAndUpdateState(toPose3(msg.pose.pose),
                                     noiseModel::Gaussian::Covariance(toGtsamMatrix(msg.pose.covariance)));
     publishNewestPose();
@@ -127,7 +127,7 @@ void ISAMOptimizer::recvRovioOdometryMsgAndPublishUpdatedPoses(const nav_msgs::O
 void ISAMOptimizer::recvLidarOdometryMsgAndPublishUpdatedPoses(const nav_msgs::Odometry &msg) {
     mu.lock();
     recvLidarOdometryAndUpdateState(toPose3(msg.pose.pose),
-                                    noiseModel::Diagonal::Sigmas(Vector6(0.02, 0.02, 0.02, 0.02, 0.02, 0.02)));
+                                    noiseModel::Diagonal::Variances((Vector(6) << 0.02, 0.02, 0.02, 0.02, 0.02, 0.02).finished()));
     publishNewestPose();
     mu.unlock();
 }
@@ -148,7 +148,7 @@ ISAMOptimizer::recvOdometryAndUpdateState(const Pose3 &odometry, int &lastPoseNu
     if (poseNum == 0) {
         // TODO just let this be poseNum == 1 and initialize at t=1 instead. This is just silly
         // We need to add a prior in the first iteration
-        auto priorNoiseX = noiseModel::Diagonal::Sigmas(Vector6(0.3, 0.3, 0.3, 0.3, 0.3, 0.3));
+        auto priorNoiseX = noiseModel::Diagonal::Sigmas((Vector(6) << 0.3, 0.3, 0.3, 0.3, 0.3, 0.3).finished());
         auto priorNoiseV = noiseModel::Isotropic::Sigma(3, 0.1);
         auto priorNoiseB = noiseModel::Isotropic::Sigma(6, 1e-3);
 
