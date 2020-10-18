@@ -1,0 +1,14 @@
+version: 2.1
+jobs:
+  build-and-test:
+    machine: true
+    steps:
+      - checkout
+      - run: |
+          ls
+          docker build . --tag rovio-loam-fusion:latest
+          docker run rovio-loam-fusion:latest
+workflows:
+  build-and-test:
+    jobs:
+      - build-and-test
