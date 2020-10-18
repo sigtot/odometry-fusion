@@ -26,8 +26,7 @@ ISAM2Params getParams() {
     isam2Params.factorization = ISAM2Params::CHOLESKY;
 }
 
-ISAMOptimizer::ISAMOptimizer(ros::Publisher *pub) : pub(*pub),
-                                                    isam(ISAM2(ISAM2Params())) {
+ISAMOptimizer::ISAMOptimizer(ros::Publisher *pub) : pub(*pub), isam(ISAM2(ISAM2Params())) {
     auto imu_params = PreintegratedCombinedMeasurements::Params::MakeSharedU(9.81);
     Matrix3 eye3;
     eye3 << 1, 0, 0,
@@ -147,6 +146,7 @@ ISAMOptimizer::recvOdometryAndUpdateState(const Pose3 &odometry, int &lastPoseNu
                                           const boost::shared_ptr<noiseModel::Gaussian> &noise) {
     poseNum++;
     Values initialEstimate;
+    NonlinearFactorGraph graph;
     if (poseNum == 1) {
         // We need to add a prior in the first iteration
         auto priorNoiseX = noiseModel::Diagonal::Sigmas((Vector(6) << 0.3, 0.3, 0.3, 0.3, 0.3, 0.3).finished());
@@ -197,5 +197,4 @@ ISAMOptimizer::recvOdometryAndUpdateState(const Pose3 &odometry, int &lastPoseNu
     resetIMUIntegrator();
     lastOdometry = odometry;
     lastPoseNum = poseNum;
-    graph.resize(0);
 }
