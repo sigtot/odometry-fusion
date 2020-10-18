@@ -1,4 +1,5 @@
 # Simple odometry optimizer ROS node
+[![sigtot](https://circleci.com/gh/sigtot/ros-simple-odometry-fusion.svg?style=shield)](https://circleci.com/gh/sigtot/ros-simple-odometry-fusion)
 
 ## Initial setup
 Download your rosbag and move it to `src/odometry_optimizer/rosbag/odometries.bag`
@@ -61,7 +62,7 @@ As the service names imply, this toggles the streams, so to turn them on again s
 
 
 ## Running tests
-Run tests with 
+Run tests with
 ```bash
 catkin_make run_tests
 ```
