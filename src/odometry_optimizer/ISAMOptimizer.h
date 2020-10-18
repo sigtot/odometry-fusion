@@ -19,7 +19,7 @@ class ISAMOptimizer: public boost::noncopyable {
 private:
     ros::Publisher &pub;
     ISAM2 isam;
-    NonlinearFactorGraph graph;
+    NonlinearFactorGraph graph; // TODO remove and remove graph.resize(0) step
     Pose3 lastRovioOdometry;
     Pose3 lastLidarOdometry;
     std::shared_ptr<PreintegrationType> imuMeasurements;

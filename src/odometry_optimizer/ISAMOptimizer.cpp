@@ -145,48 +145,47 @@ void ISAMOptimizer::recvLidarOdometryAndUpdateState(const Pose3 &odometry,
 void
 ISAMOptimizer::recvOdometryAndUpdateState(const Pose3 &odometry, int &lastPoseNum, Pose3 &lastOdometry,
                                           const boost::shared_ptr<noiseModel::Gaussian> &noise) {
-    if (poseNum == 0) {
-        // TODO just let this be poseNum == 1 and initialize at t=1 instead. This is just silly
+    poseNum++;
+    Values initialEstimate;
+    if (poseNum == 1) {
         // We need to add a prior in the first iteration
         auto priorNoiseX = noiseModel::Diagonal::Sigmas((Vector(6) << 0.3, 0.3, 0.3, 0.3, 0.3, 0.3).finished());
         auto priorNoiseV = noiseModel::Isotropic::Sigma(3, 0.1);
         auto priorNoiseB = noiseModel::Isotropic::Sigma(6, 1e-3);
 
         // TODO join this init step up with the one in the ctor
-        graph.add(PriorFactor<Pose3>(X(1), odometry, priorNoiseX)); // Init first pose on rovio or lidar odometry
-        graph.addPrior<Pose3>(X(1), odometry, priorNoiseX);
-        graph.addPrior<Vector3>(V(1), Vector3::Zero(), priorNoiseV);
-        graph.addPrior<imuBias::ConstantBias>(B(1), imuBias::ConstantBias(), priorNoiseB);
+        graph.addPrior<Pose3>(X(poseNum), odometry, priorNoiseX);
+        graph.addPrior<Vector3>(V(poseNum), Vector3::Zero(), priorNoiseV);
+        graph.addPrior<imuBias::ConstantBias>(B(poseNum), imuBias::ConstantBias(), priorNoiseB);
         prevIMUState = NavState(odometry, Vector3::Zero()); // Init prev imu state here as well
-    }
-
-    poseNum++;
-
-    if (lastPoseNum > 0) {
-        auto odometryDelta = lastOdometry.between(odometry);
-        graph.add(BetweenFactor<Pose3>(X(lastPoseNum), X(poseNum), odometryDelta, noise));
-    }
-
-
-    Values initialEstimate;
-    if (imuCount > 0) {
-        if (poseNum > 1) {
+        if (imuCount == 0) {
+            initialEstimate.insert(X(poseNum), odometry);
+        }
+    } else {
+        if (imuCount == 0) {
+            initialEstimate.insert(X(poseNum), isam.calculateEstimate(X(poseNum - 1)));
+        } else {
             auto imuCombined = dynamic_cast<const PreintegratedCombinedMeasurements &>(*imuMeasurements);
             CombinedImuFactor imuFactor(X(lastIMUPoseNum), V(lastIMUPoseNum), X(poseNum),
                                         V(poseNum), B(lastIMUPoseNum), B(poseNum),
                                         imuCombined);
             graph.add(imuFactor);
         }
+    }
+
+    // TODO: Should we call this somewhere?
+    //imuMeasurements->correctMeasurementsBySensorPose()
+
+    if (imuCount > 0) {
         NavState imuState = imuMeasurements->predict(prevIMUState, prevIMUBias);
         initialEstimate.insert(X(poseNum), imuState.pose());
         initialEstimate.insert(V(poseNum), imuState.v());
         initialEstimate.insert(B(poseNum), prevIMUBias);
-    } else {
-        if (poseNum > 1) {
-            initialEstimate.insert(X(poseNum), isam.calculateEstimate(X(poseNum - 1)));
-        } else {
-            initialEstimate.insert(X(poseNum), odometry); // TODO: Combine with the poseNum == 0 step up above
-        }
+    }
+
+    if (lastPoseNum > 0) {
+        auto odometryDelta = lastOdometry.between(odometry);
+        graph.add(BetweenFactor<Pose3>(X(lastPoseNum), X(poseNum), odometryDelta, noise));
     }
 
     isam.update(graph, initialEstimate);
