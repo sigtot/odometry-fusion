@@ -1,14 +1,17 @@
 version: 2.1
 jobs:
-  build-and-test:
-    machine: true
+  build:
+    docker:
+      - image: sigtot/ros-melodic-bionic-gtsam:1.0.1
     steps:
       - checkout
       - run: |
-          ls
-          docker build . --tag rovio-loam-fusion:latest
-          docker run rovio-loam-fusion:latest
+          source /opt/ros/melodic/setup.bash
+          cd src
+          catkin_init_workspace
+          cd ..
+          bash -c 'catkin_make'
 workflows:
   build-and-test:
     jobs:
-      - build-and-test
+      - build
