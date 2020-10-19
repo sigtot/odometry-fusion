@@ -30,7 +30,6 @@ private:
     vector<ros::Time> timestamps;
     int lastRovioPoseNum = 0;
     int lastLidarPoseNum = 0;
-    int lastIMUPoseNum = 0;
     int poseNum = 0;
     mutex mu;
 public:
