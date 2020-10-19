@@ -25,8 +25,6 @@ private:
     ros::Time lastIMUTime;
     int imuCount = 0;
     bool imuReady = false;
-    NavState prevIMUState;
-    imuBias::ConstantBias prevIMUBias;
     vector<ros::Time> timestamps;
     int lastRovioPoseNum = 0;
     int lastLidarPoseNum = 0;
@@ -48,6 +46,9 @@ public:
     void publishNewestPose();
     void incrementTime(const ros::Time &stamp);
     void resetIMUIntegrator();
+
+    NavState getPrevIMUState();
+    imuBias::ConstantBias getPrevIMUBias();
 };
 
 
