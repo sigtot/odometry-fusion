@@ -5,14 +5,29 @@
 Download your rosbag and move it to `src/odometry_optimizer/rosbag/odometries.bag`
 
 ## Build and run
+First, ensure catkin tools is installed (so you can `catkin build`)
+```bash
+sudo apt install ros-melodic-catkin python-catkin-tools
+```
+Then initialize the workspace and build
+```
+catkin init
+catkin build --cmake-args -DCMAKE_BUILD_TYPE=Release
+```
+
+### Optional: Set up rovio as VO frontend
+First, set up `kindr`, as explained here: https://github.com/ethz-asl/kindr.
+
+Then do the following:
 ```bash
 cd src
-catkin_init_workspace
-cd ..
-catkin_make
-source devel/setup.bash
-roslaunch odometry_optimizer solution.launch
+git clone git@github.com:ethz-asl/rovio.git
+cd rovio
+git submodule update --init --recursive # gets lightweight_filtering
+cd ../..
+catkin build --cmake-args -DCMAKE_BUILD_TYPE=Release
 ```
+
 
 ## Topics
 The node subscribes to odometries from the topic `/rovio/odometry` and publishes the optimized path on `/optimized_pose`. You can see the outgoing poses with the command
@@ -29,27 +44,6 @@ To export a bag of optimized poses to `rosbag/paths.bag`, run
 roslaunch odometry_optimizer record.launch
 ```
 
-## Plot `paths.bag` with python (currently broken)
-__Currently broken due to paths being replaced with poses by the publishers__
-
-You will find python code for plotting in `/plots`.
-### Setup
-Install extra dependencies with
-```bash
-pipenv install
-```
-
-### Run
-Make sure a roscore is running with
-```bash
-source devel/setup.bash
-roscore
-```
-then run the python script from another terminal.
-```bash
-pipenv run python plot_path.py
-```
-
 ## Simulating failure cases
 You can simulate failure of sensors by disabling the incoming sensor streams.
 Both rovio and lidar can be disabled.
@@ -60,9 +54,14 @@ rosservice call /toggle_lidar
 ```
 As the service names imply, this toggles the streams, so to turn them on again simply run the command once more.
 
-
-## Running tests
+## Running tests 2.0
 Run tests with
 ```bash
-catkin_make run_tests
+catkin_make run_tests odometry_optimizer
 ```
+
+To actually get a non-zero return code for failing tests, run the following command after running the tests
+```bash
+catkin_test_results
+```
+It will return 0 if all tests pass, and 1 otherwise.
