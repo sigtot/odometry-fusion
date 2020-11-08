@@ -28,6 +28,11 @@ cd ../..
 catkin build --cmake-args -DCMAKE_BUILD_TYPE=Release
 ```
 
+#### Run with rovio
+```bash
+roslaunch odometry_optimizer rovio_solution.launch
+```
+
 
 ## Topics
 The node subscribes to odometries from the topic `/rovio/odometry` and publishes the optimized path on `/optimized_pose`. You can see the outgoing poses with the command
