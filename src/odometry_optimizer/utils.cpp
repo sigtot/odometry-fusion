@@ -10,10 +10,10 @@ geometry_msgs::Pose toPoseMsg(const Pose3 &pose) {
     pointMsg.z = pose.z();
 
     geometry_msgs::Quaternion quatMsg;
-    quatMsg.w = pose.rotation().quaternion().w();
-    quatMsg.x = pose.rotation().quaternion().x();
-    quatMsg.y = pose.rotation().quaternion().y();
-    quatMsg.z = pose.rotation().quaternion().z();
+    quatMsg.w = pose.rotation().toQuaternion().w();
+    quatMsg.x = pose.rotation().toQuaternion().x();
+    quatMsg.y = pose.rotation().toQuaternion().y();
+    quatMsg.z = pose.rotation().toQuaternion().z();
 
     geometry_msgs::Pose poseMsg;
     poseMsg.position = pointMsg;
