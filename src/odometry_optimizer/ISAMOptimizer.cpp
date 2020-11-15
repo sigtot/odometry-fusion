@@ -33,7 +33,7 @@ ISAMOptimizer::ISAMOptimizer(ros::Publisher *pub) : pub(*pub), isam(ISAM2(ISAM2P
             0, 0, 1;
     // TODO these should be squared I think
     imu_params->accelerometerCovariance = eye3 * 0.14; // mg/sqrt(Hz)
-    imu_params->integrationCovariance = eye3 * 0.001; // don't know
+    imu_params->integrationCovariance = eye3 * 0; // Kitty is zero
     imu_params->gyroscopeCovariance = eye3 * 0.0035 * 3.14 / 180; // rad/s/sqrt(Hz)
     imu_params->omegaCoriolis = Vector3::Zero(); // don't know
     auto imuBias = imuBias::ConstantBias(); // Initialize at zero bias
@@ -116,7 +116,7 @@ void ISAMOptimizer::recvRovioOdometryMsgAndPublishUpdatedPoses(const nav_msgs::O
     mu.lock();
     // using covariance from rovio makes the trajectory all messed up TODO: Don't use it
     bool shouldPublish = recvRovioOdometryAndUpdateState(toPose3(msg.pose.pose), noiseModel::Diagonal::Variances(
-            (Vector(6) << 0.2, 0.2, 0.2, 0.2, 0.2, 0.2).finished()));
+            (Vector(6) << 0.05, 0.05, 0.05, 0.05, 0.05, 0.05).finished()));
     if (shouldPublish) {
         publishNewestPose();
     }
@@ -153,6 +153,10 @@ addPoseVelocityAndBiasValues(int poseNum, const Pose3 &pose, const Vector3 &velo
 
 void addValuesOnIMU(int poseNum, const NavState &navState, const imuBias::ConstantBias &bias, Values &values) {
     addPoseVelocityAndBiasValues(poseNum, navState.pose(), navState.v(), bias, values);
+}
+
+void addValuesOnOdometry(int poseNum, const Pose3 &odometry, const Vector3 &velocity, const imuBias::ConstantBias &bias, Values &values) {
+    addPoseVelocityAndBiasValues(poseNum, odometry, velocity, bias, values);
 }
 
 void addOdometryBetweenFactor(int fromPoseNum, int poseNum, const Pose3 &fromOdometry, const Pose3 &odometry,
@@ -201,7 +205,7 @@ ISAMOptimizer::recvOdometryAndUpdateState(const Pose3 &odometry, int &lastPoseNu
     }
     if (poseNum == 0 && imuCount > 1) {
         poseNum++;
-        auto priorNoiseX = noiseModel::Diagonal::Sigmas((Vector(6) << 0.1, 0.1, 0.1, 0.1, 0.1, 0.1).finished());
+        auto priorNoiseX = noiseModel::Diagonal::Sigmas((Vector(6) << 0.0001, 0.0001, 0.0001, 0.0001, 0.0001, 0.0001).finished()); // We are dead sure about starting pos
         auto priorNoiseV = noiseModel::Isotropic::Sigma(3, 0.1);
         auto priorNoiseB = noiseModel::Isotropic::Sigma(6, 2);
         addPriorFactor(odometry, Vector3::Zero(), imuBias::ConstantBias(), priorNoiseX, priorNoiseV, priorNoiseB, graph);

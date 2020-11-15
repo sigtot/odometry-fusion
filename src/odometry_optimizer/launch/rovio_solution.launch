@@ -18,22 +18,10 @@
     <param name="odometry1_topic_name" value="/echo/rovio/odometry"/>
     <param name="odometry2_topic_name" value="/echo/aft_mapped_to_init_CORRECTED"/>
 
-    <param name="cov_pos_0" value="0.0001"/>
-    <param name="cov_pos_1" value="0.0001"/>
-    <param name="cov_pos_2" value="0.0001"/>
-    <param name="cov_vel_0" value="1.0"/>
-    <param name="cov_vel_1" value="1.0"/>
-    <param name="cov_vel_2" value="1.0"/>
-    <param name="cov_att_0" value="0.1"/>
-    <param name="cov_att_1" value="0.1"/>
-    <param name="cov_att_2" value="0.1"/>
-
-    <param name="cov_acb_0" value="0.0004"/>
-    <param name="cov_acb_1" value="0.0004"/>
-    <param name="cov_acb_2" value="0.0004"/>
-    <param name="cov_gyb_0" value="0.0003"/>
-    <param name="cov_gyb_1" value="0.0003"/>
-    <param name="cov_gyb_2" value="0.0003"/>
+    <param name="gyro_noise_density" value="0.00016968"/>
+    <param name="gyro_random_walk" value="0.000019393"/>
+    <param name="acc_noise_density" value="0.002"/>
+    <param name="acc_random_walk" value="0.003"/>
 
     <node pkg="rovio" type="rovio_node" name="rovio" output="screen">
         <param name="filter_config" value="$(find rovio)/cfg/rovio.info"/>
