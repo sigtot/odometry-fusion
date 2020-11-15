@@ -41,6 +41,12 @@ ISAMOptimizer::ISAMOptimizer(ros::Publisher *pub) : pub(*pub), isam(ISAM2(ISAM2P
     resetIMUIntegrator();
 }
 
+ISAMOptimizer::ISAMOptimizer(ros::Publisher *pub, const boost::shared_ptr<PreintegrationCombinedParams>& imu_params) : pub(*pub), isam(ISAM2(ISAM2Params())) {
+    auto imuBias = imuBias::ConstantBias(); // Initialize at zero bias
+    imuMeasurements = std::make_shared<PreintegratedCombinedMeasurements>(imu_params, imuBias);
+    resetIMUIntegrator();
+}
+
 void ISAMOptimizer::recvIMUMsgAndUpdateState(const sensor_msgs::Imu &msg) {
     mu.lock();
     auto imuTime = ros::Time(msg.header.stamp.sec, msg.header.stamp.nsec);
@@ -195,9 +201,9 @@ ISAMOptimizer::recvOdometryAndUpdateState(const Pose3 &odometry, int &lastPoseNu
     }
     if (poseNum == 0 && imuCount > 1) {
         poseNum++;
-        auto priorNoiseX = noiseModel::Diagonal::Sigmas((Vector(6) << 0.3, 0.3, 0.3, 0.3, 0.3, 0.3).finished());
+        auto priorNoiseX = noiseModel::Diagonal::Sigmas((Vector(6) << 0.1, 0.1, 0.1, 0.1, 0.1, 0.1).finished());
         auto priorNoiseV = noiseModel::Isotropic::Sigma(3, 0.1);
-        auto priorNoiseB = noiseModel::Isotropic::Sigma(6, 1e-3);
+        auto priorNoiseB = noiseModel::Isotropic::Sigma(6, 2);
         addPriorFactor(odometry, Vector3::Zero(), imuBias::ConstantBias(), priorNoiseX, priorNoiseV, priorNoiseB, graph);
         addPoseVelocityAndBiasValues(poseNum, odometry, Vector3::Zero(), imuBias::ConstantBias(), values);
         isam.update(graph, values);

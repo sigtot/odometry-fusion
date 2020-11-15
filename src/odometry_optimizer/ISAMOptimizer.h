@@ -11,6 +11,7 @@
 #include <gtsam/geometry/Pose3.h>
 #include <gtsam/navigation/ImuFactor.h>
 #include <boost/noncopyable.hpp>
+#include <gtsam/navigation/CombinedImuFactor.h>
 
 using namespace gtsam;
 using namespace std;
@@ -32,6 +33,7 @@ private:
     mutex mu;
 public:
     explicit ISAMOptimizer(ros::Publisher *pub);
+    explicit ISAMOptimizer(ros::Publisher *pub, const boost::shared_ptr<PreintegrationCombinedParams>& imu_params);
 
     void recvIMUMsgAndUpdateState(const sensor_msgs::Imu &msg);
     void recvIMUAndUpdateState(const Vector3& acc, const Vector3& omega, ros::Time imuTime);
