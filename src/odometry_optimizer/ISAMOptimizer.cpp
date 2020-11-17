@@ -218,11 +218,14 @@ ISAMOptimizer::recvOdometryAndUpdateState(const Pose3 &odometry, int &lastPoseNu
     }
     if (poseNum > 0 && imuCount == 0) {
         // We do not increment poseNum because the time interval since last pose is so small
-        if (lastPoseNum > 0) {
+        cout << "Not enough time between imu measurements: " << lastPoseNum << endl;
+        if (lastPoseNum > 0 && poseNum  > lastPoseNum) {
+            cout << "Adding between factor without imu" << lastPoseNum << endl;
             addOdometryBetweenFactor(lastPoseNum, poseNum, lastOdometry, odometry, noise, graph);
             isam.update(graph, values);
+            lastPoseNum = poseNum;
+            lastOdometry = odometry;
         }
-        lastOdometry = odometry;
         return false;
     }
     if (poseNum == 0 && imuCount == 0) {
