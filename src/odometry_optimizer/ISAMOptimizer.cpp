@@ -93,6 +93,7 @@ void ISAMOptimizer::publishUpdatedPoses() {
 }
 
 void ISAMOptimizer::publishNewestPose() {
+    cout << "Going to publish new pose" << endl;
     auto newPose = isam.calculateEstimate<Pose3>(X(poseNum));
     nav_msgs::Odometry msg;
     msg.pose.pose = toPoseMsg(newPose);

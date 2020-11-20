@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+    <node
+            pkg="odometry_optimizer"
+            type="odometry_optimizer"
+            name="odometry_optimizer"
+            required="true"
+            output="screen"
+    />
+    <node
+            pkg="odometry_optimizer"
+            type="echo_node"
+            name="echo_node"
+            required="true"
+            output="screen"
+    />
+    <param name="imu_topic_name" value="/vn100/imu"/>
+    <param name="odometry1_topic_name" value="/echo/rovio/odometry"/>
+    <param name="odometry2_topic_name" value="/echo/aft_mapped_to_init_CORRECTED"/>
+
+    <param name="gyro_noise_density" value="0.00016968"/>
+    <param name="gyro_random_walk" value="0.000019393"/>
+    <param name="acc_noise_density" value="0.002"/>
+    <param name="acc_random_walk" value="0.003"/>
+
+    <node pkg="rovio" type="rovio_node" name="rovio" output="screen">
+        <param name="filter_config" value="$(find odometry_optimizer)/cfg/rovio_vlp16.info"/>
+        <param name="camera0_config" value="$(find odometry_optimizer)/cfg/vlp16_cam_left.yml"/>
+        <param name="camera1_config" value="$(find odometry_optimizer)/cfg/vlp16_cam_right.yml"/>
+        <param name="cam0_topic_name" value="/ptgrey_node/left/image_raw"/>
+        <param name="cam1_topic_name" value="/ptgrey_node/right/image_raw"/>
+        <param name="imu_topic_name" value="/vn100/imu"/>
+    </node>
+
+    <!-- Use simulation time for offline running, set to false if run online -->
+    <param name ="/use_sim_time" value="true"/>
+
+    <arg name="rviz" default="true" />
+
+    <arg name="pi" value="3.141592654"/>
+    <arg name="half_pi" value="1.570796327"/>
+    <arg name="z_offset" value="0.0"/>
+    <arg name="pitch_offset" value="$(eval 1.570796327+0.0)"/>  # (90+) 0 [ENU-deg]
+    <arg name="yaw_offset" value="$(eval 1.570796327+0.0)"/>  # (90+) 0 [ENU-deg]
+    <arg name="centerroot_tf" value="integrated_to_init_CORRECTED"/>  #aft_mapped_to_init_CORRECTED #integrated_to_init_CORRECTED
+
+    <node pkg="tf" type="static_transform_publisher" name="world_tf" respawn="true" args="0 0 $(arg z_offset) $(arg yaw_offset) 0 $(arg pitch_offset) /world /camera_init 10 "/>
+    <node pkg="tf" type="static_transform_publisher" name="world_tf_msfsupplemental" respawn="true" args="0 0 0 0 -$(arg half_pi) -$(arg half_pi) /camera_init /camera_init_CORRECTED 10 "/>
+    <node pkg="tf" type="static_transform_publisher" name="velodyne_tf" respawn="true" args="0 0 0 0 0 0 1 /$(arg centerroot_tf) /velodyne 10 "/>
+
+    <node pkg="cerberus_loam" type="scanRegistration" name="scanRegistration" output="screen">
+        <param name="point_cloud_topic_name" value="/velodyne_points"/>
+    </node>
+    <node pkg="cerberus_loam" type="laserOdometry" name="laserOdometry" output="screen" respawn="true"/>
+    <node pkg="cerberus_loam" type="laserMapping" name="laserMapping" output="screen"/>
+    <node pkg="cerberus_loam" type="transformMaintenance" name="transformMaintenance" output="screen"/>
+
+    <group if="$(arg rviz)">
+        <node launch-prefix="nice" pkg="rviz" type="rviz" name="rviz" args="-d $(find odometry_optimizer)/rviz_cfg/rovio_loam_vlp16.rviz" />
+    </group>
+
+</launch>
