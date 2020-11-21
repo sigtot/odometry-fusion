@@ -25,7 +25,7 @@ ISAM2Params getParams() {
     isam2Params.factorization = ISAM2Params::CHOLESKY;
 }
 
-ISAMOptimizer::ISAMOptimizer(ros::Publisher *pub) : pub(*pub), isam(ISAM2(ISAM2Params())) {
+ISAMOptimizer::ISAMOptimizer(ros::Publisher *pub) : pub(*pub), isam(ISAM2(ISAM2Params())), tfListener(tfBuffer) {
     auto imu_params = PreintegratedCombinedMeasurements::Params::MakeSharedU(9.81);
     Matrix3 eye3;
     eye3 << 1, 0, 0,
@@ -41,7 +41,7 @@ ISAMOptimizer::ISAMOptimizer(ros::Publisher *pub) : pub(*pub), isam(ISAM2(ISAM2P
     resetIMUIntegrator();
 }
 
-ISAMOptimizer::ISAMOptimizer(ros::Publisher *pub, const boost::shared_ptr<PreintegrationCombinedParams>& imu_params) : pub(*pub), isam(ISAM2(ISAM2Params())) {
+ISAMOptimizer::ISAMOptimizer(ros::Publisher *pub, const boost::shared_ptr<PreintegrationCombinedParams>& imu_params) : pub(*pub), isam(ISAM2(ISAM2Params())), tfListener(tfBuffer) {
     auto imuBias = imuBias::ConstantBias(); // Initialize at zero bias
     imuMeasurements = std::make_shared<PreintegratedCombinedMeasurements>(imu_params, imuBias);
     resetIMUIntegrator();
@@ -93,7 +93,6 @@ void ISAMOptimizer::publishUpdatedPoses() {
 }
 
 void ISAMOptimizer::publishNewestPose() {
-    cout << "Going to publish new pose" << endl;
     auto newPose = isam.calculateEstimate<Pose3>(X(poseNum));
     nav_msgs::Odometry msg;
     msg.pose.pose = toPoseMsg(newPose);
@@ -126,6 +125,7 @@ void ISAMOptimizer::recvRovioOdometryMsgAndPublishUpdatedPoses(const nav_msgs::O
 
 void ISAMOptimizer::recvLidarOdometryMsgAndPublishUpdatedPoses(const nav_msgs::Odometry &msg) {
     mu.lock();
+    cout << "Can transform velodyne -> world : " << tfBuffer.canTransform("velodyne", "world", ros::Time(0)) << endl;
     bool shouldPublish = recvLidarOdometryAndUpdateState(toPose3(msg.pose.pose), noiseModel::Diagonal::Variances(
             (Vector(6) << 0.2, 0.2, 0.2, 0.2, 0.2, 0.2).finished()));
     if (shouldPublish) {
