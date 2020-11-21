@@ -6,7 +6,6 @@
 #include <gtsam/navigation/CombinedImuFactor.h>
 #include <gtsam/navigation/ImuFactor.h>
 #include <gtsam/nonlinear/NonlinearFactorGraph.h>
-#include <gtsam/nonlinear/LevenbergMarquardtOptimizer.h>
 #include <gtsam/nonlinear/Values.h>
 #include <gtsam/inference/Symbol.h>
 #include <nav_msgs/Path.h>
@@ -14,6 +13,13 @@
 #include <nav_msgs/Odometry.h>
 #include <gtsam/nonlinear/ISAM2Params.h>
 #include <iostream>
+
+#include "geometry_msgs/PoseStamped.h"
+
+#include "tf2_ros/transform_listener.h"
+#include "tf2_ros/message_filter.h"
+#include "message_filters/subscriber.h"
+#include "tf2_geometry_msgs/tf2_geometry_msgs.h"
 
 using symbol_shorthand::B;  // Bias  (ax,ay,az,gx,gy,gz)
 using symbol_shorthand::V;  // Vel   (xdot,ydot,zdot)
@@ -125,8 +131,13 @@ void ISAMOptimizer::recvRovioOdometryMsgAndPublishUpdatedPoses(const nav_msgs::O
 
 void ISAMOptimizer::recvLidarOdometryMsgAndPublishUpdatedPoses(const nav_msgs::Odometry &msg) {
     mu.lock();
-    cout << "Can transform velodyne -> world : " << tfBuffer.canTransform("velodyne", "world", ros::Time(0)) << endl;
-    bool shouldPublish = recvLidarOdometryAndUpdateState(toPose3(msg.pose.pose), noiseModel::Diagonal::Variances(
+    cout << "Can transform camera_init -> world : " << tfBuffer.canTransform("camera_init", "world", ros::Time(0)) << endl;
+    geometry_msgs::PoseStamped poseStamped;
+    poseStamped.header = msg.header;
+    poseStamped.pose = msg.pose.pose;
+    cout << "Frame of pose" << poseStamped.header.frame_id << endl;
+    auto poseMsgInWorldFrame = tfBuffer.transform(poseStamped, "world");
+    bool shouldPublish = recvLidarOdometryAndUpdateState(toPose3(poseMsgInWorldFrame.pose), noiseModel::Diagonal::Variances(
             (Vector(6) << 0.2, 0.2, 0.2, 0.2, 0.2, 0.2).finished()));
     if (shouldPublish) {
         publishNewestPose();

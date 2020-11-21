@@ -10,6 +10,8 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
         tf2
         tf2_ros
+        tf2_msgs
+        tf2_geometry_msgs
 )
 
 add_service_files(
