@@ -6,22 +6,28 @@
 #include <string>
 #include <odometry_optimizer/ToggleEcho.h>
 
+#include <chrono>
+#include <thread>
+
 using namespace std;
 
 template<class T>
 class EchoPublisher {
 private:
     string topic;
+    string echoTopic;
     ros::Publisher pub;
     ros::Subscriber sub;
     bool enabled = true;
+    int delayMillis = 0;
 
     void echo(const T &msg);
 
     string publishTopic();
 
 public:
-    EchoPublisher(const string &topic, ros::NodeHandle &nh);
+    EchoPublisher(const string &topic, ros::NodeHandle &nh, const string &echoTopic, int delayMillis = 0);
+    EchoPublisher(const string &topic, ros::NodeHandle &nh) : EchoPublisher(topic, nh, topic) {};
 
     void enable();
     void disable();
@@ -30,14 +36,19 @@ public:
 };
 
 template<class T>
-EchoPublisher<T>::EchoPublisher(const string &topic, ros::NodeHandle &nh) : topic(topic) {
+EchoPublisher<T>::EchoPublisher(const string &topic, ros::NodeHandle &nh, const string &echoTopic, int delayMillis) : topic(topic), echoTopic(echoTopic) {
     pub = nh.advertise<T>(publishTopic(), 1000);
     sub = nh.subscribe(topic, 1000, &EchoPublisher::echo, this);
+    this->delayMillis = delayMillis;
 }
 
 template<class T>
 void EchoPublisher<T>::echo(const T &msg) {
     if (enabled) {
+        if (delayMillis > 0) {
+            cout << "Delaying for " << delayMillis << " millis" << endl;
+            this_thread::sleep_for(std::chrono::milliseconds(delayMillis));
+        }
         pub.publish(msg);
         cout << "Echoed msg on " << publishTopic() << endl;
     } else {
@@ -47,7 +58,7 @@ void EchoPublisher<T>::echo(const T &msg) {
 
 template<class T>
 string EchoPublisher<T>::publishTopic() {
-    return "/echo" + topic;
+    return "/echo" + echoTopic;
 }
 
 template<class T>
