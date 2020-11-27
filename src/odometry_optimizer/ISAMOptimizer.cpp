@@ -205,6 +205,11 @@ ISAMOptimizer::recvOdometryAndUpdateState(const Pose3 &odometry, int &lastPoseNu
         poseNum++;
         if (lastPoseNum > 0) {
             addOdometryBetweenFactor(lastPoseNum, poseNum, lastOdometry, odometry, noise, graph);
+        } else {
+            // If we have initialized the other modality, but not this one, we need to add a second hard prior on the pose
+            auto priorNoiseX = noiseModel::Diagonal::Sigmas((Vector(6) << 0.01, 0.01, 0.01, 0.01, 0.01, 0.01).finished());
+            graph.addPrior<Pose3>(X(poseNum), odometry, priorNoiseX);
+            cout << "Added prior on second modality" << endl;
         }
         addCombinedFactor(poseNum, lastOdometry, odometry, imuMeasurements, noise, graph);
         NavState navState = imuMeasurements->predict(getPrevIMUState(), getPrevIMUBias());
