@@ -214,7 +214,15 @@ ISAMOptimizer::recvOdometryAndUpdateState(const Pose3 &odometry, int &lastPoseNu
         addCombinedFactor(poseNum, lastOdometry, odometry, imuMeasurements, noise, graph);
         NavState navState = imuMeasurements->predict(getPrevIMUState(), getPrevIMUBias());
         addValuesOnIMU(poseNum, navState, getPrevIMUBias(), values);
-        isam.update(graph, values);
+        try {
+            isam.update(graph, values);
+        } catch (gtsam::IndeterminantLinearSystemException e) {
+            cout << "Caught indeterminant linear system exception when adding between factors" << endl;
+            auto factors = isam.getFactorsUnsafe();
+            auto result = isam.calculateEstimate();
+            factors.print("whole graph");
+            throw e;
+        }
         resetIMUIntegrator();
         lastOdometry = odometry;
         lastPoseNum = poseNum;
