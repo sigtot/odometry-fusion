@@ -16,6 +16,8 @@
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_listener.h>
 #include <deque>
+#include <thread>
+#include <condition_variable>
 
 using namespace gtsam;
 using namespace std;
@@ -39,8 +41,11 @@ private:
     tf2_ros::Buffer tfBuffer;
     tf2_ros::TransformListener tfListener;
     deque<sensor_msgs::Imu> imuDeque;
+
+    mutex cvMu;
+    condition_variable cv;
+    thread processOdometryMeasurementsThread;
 public:
-    explicit ISAMOptimizer(ros::Publisher *pub);
     explicit ISAMOptimizer(ros::Publisher *pub, const boost::shared_ptr<PreintegrationCombinedParams>& imu_params);
 
     void recvIMUMsgAndUpdateState(const sensor_msgs::Imu &msg);
@@ -53,12 +58,16 @@ public:
     bool recvLidarOdometryAndUpdateState(const geometry_msgs::PoseStamped &msg, const boost::shared_ptr<noiseModel::Gaussian>& noise);
     bool recvOdometryAndUpdateState(const geometry_msgs::PoseStamped &msg, int &lastPoseNum, Pose3 &lastOdometry, const boost::shared_ptr<noiseModel::Gaussian>& noise);
 
+    void processOdometryMeasurements();
+
     void publishUpdatedPoses();
     void publishNewestPose();
     void incrementTime(const ros::Time &stamp);
 
     NavState getPrevIMUState();
     imuBias::ConstantBias getPrevIMUBias();
+
+    virtual ~ISAMOptimizer();
 };
 
 

@@ -31,26 +31,11 @@ ISAM2Params getParams() {
     isam2Params.factorization = ISAM2Params::CHOLESKY;
 }
 
-ISAMOptimizer::ISAMOptimizer(ros::Publisher *pub) : pub(*pub), isam(ISAM2(ISAM2Params())), tfListener(tfBuffer) {
-    auto imu_params = PreintegratedCombinedMeasurements::Params::MakeSharedU(9.81);
-    Matrix3 eye3;
-    eye3 << 1, 0, 0,
-            0, 1, 0,
-            0, 0, 1;
-    // TODO these should be squared I think
-    imu_params->accelerometerCovariance = eye3 * 0.14; // mg/sqrt(Hz)
-    imu_params->integrationCovariance = eye3 * 0; // Kitty is zero
-    imu_params->gyroscopeCovariance = eye3 * 0.0035 * 3.14 / 180; // rad/s/sqrt(Hz)
-    imu_params->omegaCoriolis = Vector3::Zero(); // don't know
-    auto imuBias = imuBias::ConstantBias(); // Initialize at zero bias
-    imuMeasurements = std::make_shared<PreintegratedCombinedMeasurements>(imu_params, imuBias);
-    imuMeasurements->resetIntegration();
-}
-
 ISAMOptimizer::ISAMOptimizer(ros::Publisher *pub, const boost::shared_ptr<PreintegrationCombinedParams>& imu_params) : pub(*pub), isam(ISAM2(ISAM2Params())), tfListener(tfBuffer) {
     auto imuBias = imuBias::ConstantBias(); // Initialize at zero bias
     imuMeasurements = std::make_shared<PreintegratedCombinedMeasurements>(imu_params, imuBias);
     imuMeasurements->resetIntegration();
+    processOdometryMeasurementsThread = thread(&ISAMOptimizer::processOdometryMeasurements, this);
 }
 
 void ISAMOptimizer::safeAddIMUMsgToDeque(const sensor_msgs::Imu &msg) {
@@ -288,4 +273,17 @@ NavState ISAMOptimizer::getPrevIMUState() {
 
 imuBias::ConstantBias ISAMOptimizer::getPrevIMUBias() {
     return isam.calculateEstimate<imuBias::ConstantBias>(B(poseNum - 1));
+}
+
+void ISAMOptimizer::processOdometryMeasurements() {
+    unique_lock<std::mutex> lock(cvMu);
+    while(!ros::isShuttingDown()) {
+        cout << "Starting processing thread" << endl;
+        cv.wait(lock);
+    }
+}
+
+ISAMOptimizer::~ISAMOptimizer() {
+    cv.notify_all();
+    processOdometryMeasurementsThread.join();
 }
