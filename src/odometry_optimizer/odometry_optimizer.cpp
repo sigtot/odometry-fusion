@@ -30,14 +30,15 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    imu_params->gyroscopeCovariance << eye3 * gyroNoiseDensity * gyroNoiseDensity;
-    imu_params->biasOmegaCovariance << eye3 * gyroRandomWalk * gyroRandomWalk;
-    imu_params->accelerometerCovariance << eye3 * accNoiseDensity * accNoiseDensity;
-    imu_params->biasAccCovariance << eye3 * accRandomWalk * accRandomWalk;
+    imu_params->gyroscopeCovariance << I_3x3 * gyroNoiseDensity * gyroNoiseDensity;
+    imu_params->biasOmegaCovariance << I_3x3 * gyroRandomWalk * gyroRandomWalk;
+    imu_params->accelerometerCovariance << I_3x3 * accNoiseDensity * accNoiseDensity;
+    imu_params->biasAccCovariance << I_3x3 * accRandomWalk * accRandomWalk;
 
-    imu_params->integrationCovariance = eye3 * 0; // Kitti is zero
+    imu_params->integrationCovariance = I_3x3 * 1e-8; // From gtsam kitti example
 
     imu_params->omegaCoriolis = Vector3::Zero(); // don't know
+    imu_params->biasAccOmegaInt << I_6x6 * 1e-5; // From gtsam kitti example
 
     auto pub = nh.advertise<nav_msgs::Odometry>("/optimized_pose", 1000);
 
@@ -52,7 +53,7 @@ int main(int argc, char **argv) {
 
     ros::Subscriber subIMU = nh.subscribe(imuTopicName,
                                           1000,
-                                          &ISAMOptimizer::recvIMUMsgAndUpdateState,
+                                          &ISAMOptimizer::safeAddIMUMsgToDeque,
                                           &isamOptimizer);
     ros::Subscriber subRovio = nh.subscribe(odometry1TopicName,
                                             1000,

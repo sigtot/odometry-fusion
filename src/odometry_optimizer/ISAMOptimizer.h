@@ -14,6 +14,7 @@
 #include <gtsam/navigation/CombinedImuFactor.h>
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_listener.h>
+#include <deque>
 
 using namespace gtsam;
 using namespace std;
@@ -26,6 +27,7 @@ private:
     Pose3 lastLidarOdometry;
     std::shared_ptr<PreintegrationType> imuMeasurements;
     ros::Time lastIMUTime;
+    ros::Time lastPoseTime;
     int imuCount = 0;
     bool imuReady = false;
     vector<ros::Time> timestamps;
@@ -35,12 +37,14 @@ private:
     mutex mu;
     tf2_ros::Buffer tfBuffer;
     tf2_ros::TransformListener tfListener;
+    deque<sensor_msgs::Imu> imuDeque;
 public:
     explicit ISAMOptimizer(ros::Publisher *pub);
     explicit ISAMOptimizer(ros::Publisher *pub, const boost::shared_ptr<PreintegrationCombinedParams>& imu_params);
 
     void recvIMUMsgAndUpdateState(const sensor_msgs::Imu &msg);
     void recvIMUAndUpdateState(const Vector3& acc, const Vector3& omega, ros::Time imuTime);
+    void safeAddIMUMsgToDeque(const sensor_msgs::Imu &msg);
 
     void recvRovioOdometryMsgAndPublishUpdatedPoses(const nav_msgs::Odometry &msg);
     void recvLidarOdometryMsgAndPublishUpdatedPoses(const nav_msgs::Odometry &msg);
@@ -51,7 +55,6 @@ public:
     void publishUpdatedPoses();
     void publishNewestPose();
     void incrementTime(const ros::Time &stamp);
-    void resetIMUIntegrator();
 
     NavState getPrevIMUState();
     imuBias::ConstantBias getPrevIMUBias();

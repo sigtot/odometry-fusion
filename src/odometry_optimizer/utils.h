@@ -5,8 +5,12 @@
 #include <geometry_msgs/Pose.h>
 #include <gtsam/geometry/Pose3.h>
 #include <geometry_msgs/PoseStamped.h>
+#include <gtsam/navigation/CombinedImuFactor.h>
+#include <sensor_msgs/Imu.h>
+#include <deque>
 
 using namespace gtsam;
+using namespace std;
 
 geometry_msgs::Pose toPoseMsg(const Pose3 &pose);
 
@@ -15,5 +19,7 @@ Pose3 toPose3(const geometry_msgs::Pose &poseMsg);
 geometry_msgs::PoseStamped createStampedPoseMsg(const Pose3 &pose, const ros::Time &stamp);
 
 gtsam::Matrix6 toGtsamMatrix(boost::array<double, 36> arr);
+
+void integrateIMUMeasurements(deque<sensor_msgs::Imu> &imuDeque, std::shared_ptr<PreintegrationType> &imuMeasurements, ros::Time lastIMUTime);
 
 #endif //ODOMETRY_OPTIMIZER_UTILS_H
