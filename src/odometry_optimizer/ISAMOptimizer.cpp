@@ -136,8 +136,10 @@ void ISAMOptimizer::incrementTime(const ros::Time &stamp) {
 
 void ISAMOptimizer::recvRovioOdometryMsgAndPublishUpdatedPoses(const nav_msgs::Odometry &msg) {
     mu.lock();
-    // using covariance from rovio makes the trajectory all messed up TODO: Don't use it
-    bool shouldPublish = recvRovioOdometryAndUpdateState(toPose3(msg.pose.pose), noiseModel::Diagonal::Variances(
+    geometry_msgs::PoseStamped poseStamped;
+    poseStamped.header = msg.header;
+    poseStamped.pose = msg.pose.pose;
+    bool shouldPublish = recvRovioOdometryAndUpdateState(poseStamped, noiseModel::Diagonal::Variances(
             (Vector(6) << 0.0001, 0.0001, 0.0001, 0.0001, 0.0001, 0.0001).finished()));
     if (shouldPublish) {
         publishNewestPose();
@@ -153,7 +155,7 @@ void ISAMOptimizer::recvLidarOdometryMsgAndPublishUpdatedPoses(const nav_msgs::O
     poseStamped.pose = msg.pose.pose;
     cout << "Frame of pose" << poseStamped.header.frame_id << endl;
     auto poseMsgInWorldFrame = tfBuffer.transform(poseStamped, "world");
-    bool shouldPublish = recvLidarOdometryAndUpdateState(toPose3(poseMsgInWorldFrame.pose), noiseModel::Diagonal::Variances(
+    bool shouldPublish = recvLidarOdometryAndUpdateState(poseMsgInWorldFrame, noiseModel::Diagonal::Variances(
             (Vector(6) << 0.2, 0.2, 0.2, 0.2, 0.2, 0.2).finished()));
     if (shouldPublish) {
         publishNewestPose();
@@ -161,14 +163,14 @@ void ISAMOptimizer::recvLidarOdometryMsgAndPublishUpdatedPoses(const nav_msgs::O
     mu.unlock();
 }
 
-bool ISAMOptimizer::recvRovioOdometryAndUpdateState(const Pose3 &odometry,
+bool ISAMOptimizer::recvRovioOdometryAndUpdateState(const geometry_msgs::PoseStamped &msg,
                                                     const boost::shared_ptr<noiseModel::Gaussian> &noise) {
-    return recvOdometryAndUpdateState(odometry, lastRovioPoseNum, lastRovioOdometry, noise);
+    return recvOdometryAndUpdateState(msg, lastRovioPoseNum, lastRovioOdometry, noise);
 }
 
-bool ISAMOptimizer::recvLidarOdometryAndUpdateState(const Pose3 &odometry,
+bool ISAMOptimizer::recvLidarOdometryAndUpdateState(const geometry_msgs::PoseStamped &msg,
                                                     const boost::shared_ptr<noiseModel::Gaussian> &noise) {
-    return recvOdometryAndUpdateState(odometry, lastLidarPoseNum, lastLidarOdometry, noise);
+    return recvOdometryAndUpdateState(msg, lastLidarPoseNum, lastLidarOdometry, noise);
 }
 
 void
@@ -213,10 +215,11 @@ void addCombinedFactor(int poseNum, const Pose3 &fromOdometry, const Pose3 &odom
 }
 
 bool
-ISAMOptimizer::recvOdometryAndUpdateState(const Pose3 &odometry, int &lastPoseNum, Pose3 &lastOdometry,
+ISAMOptimizer::recvOdometryAndUpdateState(const geometry_msgs::PoseStamped &msg, int &lastPoseNum, Pose3 &lastOdometry,
                                           const boost::shared_ptr<noiseModel::Gaussian> &noise) {
     Values values;
     NonlinearFactorGraph graph;
+    auto odometry = toPose3(msg.pose);
     if (poseNum > 0 && imuDeque.size() > 1) { // TODO Why bigger than 1 and not zero?
         poseNum++;
         if (lastPoseNum > 0) {

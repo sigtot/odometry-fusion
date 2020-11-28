@@ -6,6 +6,7 @@
 #include <ros/ros.h>
 #include <sensor_msgs/Imu.h>
 #include <nav_msgs/Odometry.h>
+#include <geometry_msgs/PoseStamped.h>
 #include <gtsam/nonlinear/NonlinearISAM.h>
 #include <gtsam/nonlinear/ISAM2.h>
 #include <gtsam/geometry/Pose3.h>
@@ -48,9 +49,9 @@ public:
 
     void recvRovioOdometryMsgAndPublishUpdatedPoses(const nav_msgs::Odometry &msg);
     void recvLidarOdometryMsgAndPublishUpdatedPoses(const nav_msgs::Odometry &msg);
-    bool recvRovioOdometryAndUpdateState(const Pose3 &odometry, const boost::shared_ptr<noiseModel::Gaussian>& noise);
-    bool recvLidarOdometryAndUpdateState(const Pose3 &odometry, const boost::shared_ptr<noiseModel::Gaussian>& noise);
-    bool recvOdometryAndUpdateState(const Pose3 &odometry, int &lastPoseNum, Pose3 &lastOdometry, const boost::shared_ptr<noiseModel::Gaussian>& noise);
+    bool recvRovioOdometryAndUpdateState(const geometry_msgs::PoseStamped &msg, const boost::shared_ptr<noiseModel::Gaussian>& noise);
+    bool recvLidarOdometryAndUpdateState(const geometry_msgs::PoseStamped &msg, const boost::shared_ptr<noiseModel::Gaussian>& noise);
+    bool recvOdometryAndUpdateState(const geometry_msgs::PoseStamped &msg, int &lastPoseNum, Pose3 &lastOdometry, const boost::shared_ptr<noiseModel::Gaussian>& noise);
 
     void publishUpdatedPoses();
     void publishNewestPose();

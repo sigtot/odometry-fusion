@@ -28,6 +28,7 @@
         <param name="camera0_config" value="$(find odometry_optimizer)/cfg/san_rafael_cam.yml"/>
         <param name="cam0_topic_name" value="/camera/image_mono"/>
         <param name="imu_topic_name" value="/vn100/imu"/>
+        <!-- TODO add cam0_offset -->
     </node>
 
     <!-- Use simulation time for offline running, set to false if run online -->
