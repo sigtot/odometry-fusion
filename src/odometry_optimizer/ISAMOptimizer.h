@@ -18,6 +18,7 @@
 #include <deque>
 #include <thread>
 #include <condition_variable>
+#include "QueuedOdometryMeasurementProcessor.h"
 
 using namespace gtsam;
 using namespace std;
@@ -42,9 +43,7 @@ private:
     tf2_ros::TransformListener tfListener;
     deque<sensor_msgs::Imu> imuDeque;
 
-    mutex cvMu;
-    condition_variable cv;
-    thread processOdometryMeasurementsThread;
+    QueuedOdometryMeasurementProcessor odometryMeasurementProcessor;
 public:
     explicit ISAMOptimizer(ros::Publisher *pub, const boost::shared_ptr<PreintegrationCombinedParams>& imu_params);
 
@@ -52,13 +51,14 @@ public:
     void recvIMUAndUpdateState(const Vector3& acc, const Vector3& omega, ros::Time imuTime);
     void safeAddIMUMsgToDeque(const sensor_msgs::Imu &msg);
 
-    void recvRovioOdometryMsgAndPublishUpdatedPoses(const nav_msgs::Odometry &msg);
-    void recvLidarOdometryMsgAndPublishUpdatedPoses(const nav_msgs::Odometry &msg);
+    void recvRovioOdometryAndAddToQueue(const nav_msgs::Odometry &msg);
+    void recvLidarOdometryAndAddToQueue(const nav_msgs::Odometry &msg);
     bool recvRovioOdometryAndUpdateState(const geometry_msgs::PoseStamped &msg, const boost::shared_ptr<noiseModel::Gaussian>& noise);
     bool recvLidarOdometryAndUpdateState(const geometry_msgs::PoseStamped &msg, const boost::shared_ptr<noiseModel::Gaussian>& noise);
     bool recvOdometryAndUpdateState(const geometry_msgs::PoseStamped &msg, int &lastPoseNum, Pose3 &lastOdometry, const boost::shared_ptr<noiseModel::Gaussian>& noise);
 
     void processOdometryMeasurements();
+    void processOdometryMeasurement(const OdometryMeasurement &measurement);
 
     void publishUpdatedPoses();
     void publishNewestPose();
@@ -66,8 +66,6 @@ public:
 
     NavState getPrevIMUState();
     imuBias::ConstantBias getPrevIMUBias();
-
-    virtual ~ISAMOptimizer();
 };
 
 

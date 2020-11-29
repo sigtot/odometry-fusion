@@ -57,11 +57,11 @@ int main(int argc, char **argv) {
                                           &isamOptimizer);
     ros::Subscriber subRovio = nh.subscribe(odometry1TopicName,
                                             1000,
-                                            &ISAMOptimizer::recvRovioOdometryMsgAndPublishUpdatedPoses,
+                                            &ISAMOptimizer::recvRovioOdometryAndAddToQueue,
                                             &isamOptimizer);
     ros::Subscriber subLidar = nh.subscribe(odometry2TopicName,
                                             1000,
-                                            &ISAMOptimizer::recvLidarOdometryMsgAndPublishUpdatedPoses,
+                                            &ISAMOptimizer::recvLidarOdometryAndAddToQueue,
                                             &isamOptimizer);
     ros::spin();
 }
