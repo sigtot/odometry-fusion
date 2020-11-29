@@ -12,7 +12,6 @@ QueuedOdometryMeasurementProcessor::QueuedOdometryMeasurementProcessor(
 void QueuedOdometryMeasurementProcessor::waitAndProcessMessages() {
     unique_lock<std::mutex> lock(notifierMutex);
     while (!ros::isShuttingDown()) {
-        cout << "Going to process" << endl;
         OdometryMeasurement measurement;
         bool haveMeasurement = false;
         measurementMutex.lock();
@@ -29,14 +28,14 @@ void QueuedOdometryMeasurementProcessor::waitAndProcessMessages() {
     }
 }
 
-QueuedOdometryMeasurementProcessor::~QueuedOdometryMeasurementProcessor() {
-    cv.notify_all();
-    processThread.join();
-}
-
 void QueuedOdometryMeasurementProcessor::addMeasurement(const OdometryMeasurement &measurement) {
     measurementMutex.lock();
     measurements[measurement.msg.header.stamp.toSec()] = measurement;
     measurementMutex.unlock();
     cv.notify_one();
+}
+
+QueuedOdometryMeasurementProcessor::~QueuedOdometryMeasurementProcessor() {
+    cv.notify_all();
+    processThread.join();
 }
