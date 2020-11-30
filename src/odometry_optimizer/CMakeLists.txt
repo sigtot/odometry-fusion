@@ -8,6 +8,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   message_generation
   std_msgs
+        tf
         tf2
         tf2_ros
         tf2_msgs

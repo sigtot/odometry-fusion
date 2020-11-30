@@ -34,7 +34,6 @@ ISAM2Params getParams() {
 ISAMOptimizer::ISAMOptimizer(ros::Publisher *pub, const boost::shared_ptr<PreintegrationCombinedParams> &imu_params)
         : pub(*pub),
           isam(ISAM2(ISAM2Params())),
-          tfListener(tfBuffer),
           odometryMeasurementProcessor(std::bind(&ISAMOptimizer::processOdometryMeasurement,
                                                  this,
                                                  std::placeholders::_1),
@@ -85,10 +84,10 @@ void ISAMOptimizer::publishUpdatedPoses() {
         auto pose = isam.calculateEstimate<Pose3>(X(j));
         auto stamp = timestamps[j];
         auto stampedPose = createStampedPoseMsg(pose, stamp);
-        stampedPose.header.frame_id = "world";
+        stampedPose.header.frame_id = "/map";
         pathMsg.poses.push_back(stampedPose);
     }
-    pathMsg.header.frame_id = "world";
+    pathMsg.header.frame_id = "/map";
     pub.publish(pathMsg);
     ROS_INFO("Published path");
 }
@@ -97,7 +96,7 @@ void ISAMOptimizer::publishNewestPose() {
     auto newPose = isam.calculateEstimate<Pose3>(X(poseNum));
     nav_msgs::Odometry msg;
     msg.pose.pose = toPoseMsg(newPose);
-    msg.header.frame_id = "world";
+    msg.header.frame_id = "/map";
     pub.publish(msg);
     ROS_INFO("Published updated pose");
 }
@@ -122,7 +121,8 @@ void ISAMOptimizer::processOdometryMeasurement(const OdometryMeasurement &measur
         case ODOMETRY_TYPE_LOAM:
             poseStamped.header = measurement.msg.header;
             poseStamped.pose = measurement.msg.pose.pose;
-            auto poseMsgInWorldFrame = tfBuffer.transform(poseStamped, "world"); // Can fail if newer transform message has arrived
+            geometry_msgs::PoseStamped poseMsgInWorldFrame;
+            tfListenerNew.transformPose("/map", poseStamped, poseMsgInWorldFrame); // Can fail if newer transform message has arrived
             shouldPublish = recvLidarOdometryAndUpdateState(poseMsgInWorldFrame, noiseModel::Diagonal::Variances(
                     (Vector(6) << 0.2, 0.2, 0.2, 0.2, 0.2, 0.2).finished()));
             break;

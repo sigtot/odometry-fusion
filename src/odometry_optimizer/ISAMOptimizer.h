@@ -15,6 +15,7 @@
 #include <gtsam/navigation/CombinedImuFactor.h>
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_listener.h>
+#include <tf/transform_listener.h>
 #include <deque>
 #include <thread>
 #include <condition_variable>
@@ -40,8 +41,7 @@ private:
     int lastLidarPoseNum = 0;
     int poseNum = 0;
     mutex mu;
-    tf2_ros::Buffer tfBuffer;
-    tf2_ros::TransformListener tfListener;
+    tf::TransformListener tfListenerNew;
     OdometryMeasurement lastOdometryMeasurement;
 
     QueuedOdometryMeasurementProcessor odometryMeasurementProcessor;
