@@ -45,24 +45,7 @@ ISAMOptimizer::ISAMOptimizer(ros::Publisher *pub, const boost::shared_ptr<Preint
 }
 
 void ISAMOptimizer::safeAddIMUMsgToDeque(const sensor_msgs::Imu &msg) {
-    mu.lock();
-    if (!imuReady) {
-        // Because every imu measurement needs a dt, we drop the first and only record its timestamp
-        lastIMUTime = msg.header.stamp;
-        imuReady = true;
-        mu.unlock();
-        return;
-    }
-    if (msg.header.stamp < lastIMUTime) {
-        // Oops, something is out of order: Just ignore the message until we get something new
-        ROS_INFO("Got out of order IMU message");
-        mu.unlock();
-        return;
-    }
-    if (imuDeque.empty() || imuDeque.front().header.stamp < msg.header.stamp) {
-        imuDeque.push_front(msg);
-    }
-    mu.unlock();
+    imuQueue.addMeasurement(msg);
 }
 
 void ISAMOptimizer::recvIMUMsgAndUpdateState(const sensor_msgs::Imu &msg) {
@@ -134,12 +117,12 @@ void ISAMOptimizer::processOdometryMeasurement(const OdometryMeasurement &measur
             poseStamped.header = measurement.msg.header;
             poseStamped.pose = measurement.msg.pose.pose;
             shouldPublish = recvRovioOdometryAndUpdateState(poseStamped, noiseModel::Diagonal::Variances(
-                    (Vector(6) << 0.0001, 0.0001, 0.0001, 0.0001, 0.0001, 0.0001).finished()));
+                    (Vector(6) << 0.1, 0.1, 0.1, 0.1, 0.1, 0.1).finished()));
             break;
         case ODOMETRY_TYPE_LOAM:
             poseStamped.header = measurement.msg.header;
             poseStamped.pose = measurement.msg.pose.pose;
-            auto poseMsgInWorldFrame = tfBuffer.transform(poseStamped, "world");
+            auto poseMsgInWorldFrame = tfBuffer.transform(poseStamped, "world"); // Can fail if newer transform message has arrived
             shouldPublish = recvLidarOdometryAndUpdateState(poseMsgInWorldFrame, noiseModel::Diagonal::Variances(
                     (Vector(6) << 0.2, 0.2, 0.2, 0.2, 0.2, 0.2).finished()));
             break;
@@ -147,6 +130,7 @@ void ISAMOptimizer::processOdometryMeasurement(const OdometryMeasurement &measur
     if (shouldPublish) {
         publishNewestPose();
     }
+    lastOdometryMeasurement = measurement;
     mu.unlock();
 }
 
@@ -218,7 +202,23 @@ ISAMOptimizer::recvOdometryAndUpdateState(const geometry_msgs::PoseStamped &msg,
     Values values;
     NonlinearFactorGraph graph;
     auto odometry = toPose3(msg.pose);
-    if (poseNum > 0 && imuDeque.size() > 1) { // TODO Why bigger than 1 and not zero?
+    if (poseNum == 0) {
+        poseNum++;
+        auto priorNoiseX = noiseModel::Diagonal::Sigmas((Vector(6)
+                << 0.0001, 0.0001, 0.0001, 0.0001, 0.0001, 0.0001).finished()); // We are dead sure about starting pos
+        auto priorNoiseV = noiseModel::Isotropic::Sigma(3, 0.1);
+        auto priorNoiseB = noiseModel::Isotropic::Sigma(6, 2);
+        addPriorFactor(odometry, Vector3::Zero(), imuBias::ConstantBias(), priorNoiseX, priorNoiseV, priorNoiseB,
+                       graph);
+        addPoseVelocityAndBiasValues(poseNum, odometry, Vector3::Zero(), imuBias::ConstantBias(), values);
+        isam.update(graph, values);
+        imuMeasurements->resetIntegration(); // TODO Remove
+        lastOdometry = odometry;
+        lastPoseNum = poseNum;
+        return true;
+    }
+    auto haveIMUMeasurements = imuQueue.hasMeasurementsInRange(lastOdometryMeasurement.msg.header.stamp, msg.header.stamp);
+    if (haveIMUMeasurements) {
         poseNum++;
         if (lastPoseNum > 0) {
             addOdometryBetweenFactor(lastPoseNum, poseNum, lastOdometry, odometry, noise, graph);
@@ -229,9 +229,7 @@ ISAMOptimizer::recvOdometryAndUpdateState(const geometry_msgs::PoseStamped &msg,
             graph.addPrior<Pose3>(X(poseNum), odometry, priorNoiseX);
             cout << "Added prior on second modality" << endl;
         }
-        integrateIMUMeasurements(imuDeque, imuMeasurements, lastIMUTime);
-        lastIMUTime = imuDeque.front().header.stamp;
-        imuDeque.clear();
+        imuQueue.integrateIMUMeasurements(imuMeasurements, lastOdometryMeasurement.msg.header.stamp, msg.header.stamp);
         addCombinedFactor(poseNum, lastOdometry, odometry, imuMeasurements, noise, graph);
         NavState navState = imuMeasurements->predict(getPrevIMUState(), getPrevIMUBias());
         getPrevIMUBias().print("prev imu bias: ");
@@ -249,23 +247,7 @@ ISAMOptimizer::recvOdometryAndUpdateState(const geometry_msgs::PoseStamped &msg,
         lastOdometry = odometry;
         lastPoseNum = poseNum;
         return true;
-    }
-    if (poseNum == 0 && imuDeque.size() > 1) {
-        poseNum++;
-        auto priorNoiseX = noiseModel::Diagonal::Sigmas((Vector(6)
-                << 0.0001, 0.0001, 0.0001, 0.0001, 0.0001, 0.0001).finished()); // We are dead sure about starting pos
-        auto priorNoiseV = noiseModel::Isotropic::Sigma(3, 0.1);
-        auto priorNoiseB = noiseModel::Isotropic::Sigma(6, 2);
-        addPriorFactor(odometry, Vector3::Zero(), imuBias::ConstantBias(), priorNoiseX, priorNoiseV, priorNoiseB,
-                       graph);
-        addPoseVelocityAndBiasValues(poseNum, odometry, Vector3::Zero(), imuBias::ConstantBias(), values);
-        isam.update(graph, values);
-        imuMeasurements->resetIntegration(); // TODO Remove
-        lastOdometry = odometry;
-        lastPoseNum = poseNum;
-        return true;
-    }
-    if (poseNum > 0 && imuDeque.size() <= 1) {
+    } else {
         // We do not increment poseNum because the time interval since last pose is so small
         cout << "Not enough time between imu measurements: " << lastPoseNum << endl;
         if (lastPoseNum > 0 && poseNum > lastPoseNum) {
@@ -275,10 +257,6 @@ ISAMOptimizer::recvOdometryAndUpdateState(const geometry_msgs::PoseStamped &msg,
             lastPoseNum = poseNum;
             lastOdometry = odometry;
         }
-        return false;
-    }
-    if (poseNum == 0 && imuDeque.size() <= 1) {
-        // Skip odometry measurements until we have IMU
         return false;
     }
 }

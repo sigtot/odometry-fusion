@@ -19,6 +19,7 @@
 #include <thread>
 #include <condition_variable>
 #include "QueuedOdometryMeasurementProcessor.h"
+#include "IMUQueue.h"
 
 using namespace gtsam;
 using namespace std;
@@ -41,9 +42,10 @@ private:
     mutex mu;
     tf2_ros::Buffer tfBuffer;
     tf2_ros::TransformListener tfListener;
-    deque<sensor_msgs::Imu> imuDeque;
+    OdometryMeasurement lastOdometryMeasurement;
 
     QueuedOdometryMeasurementProcessor odometryMeasurementProcessor;
+    IMUQueue imuQueue;
 public:
     explicit ISAMOptimizer(ros::Publisher *pub, const boost::shared_ptr<PreintegrationCombinedParams>& imu_params);
 

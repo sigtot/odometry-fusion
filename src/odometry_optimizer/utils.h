@@ -20,6 +20,4 @@ geometry_msgs::PoseStamped createStampedPoseMsg(const Pose3 &pose, const ros::Ti
 
 gtsam::Matrix6 toGtsamMatrix(boost::array<double, 36> arr);
 
-void integrateIMUMeasurements(deque<sensor_msgs::Imu> &imuDeque, std::shared_ptr<PreintegrationType> &imuMeasurements, ros::Time lastIMUTime);
-
 #endif //ODOMETRY_OPTIMIZER_UTILS_H

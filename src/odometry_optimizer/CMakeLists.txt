@@ -30,7 +30,7 @@ catkin_package(
 
 include_directories(include ${catkin_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS} ${GTSAM_INCLUDE_DIRS})
 
-add_executable(odometry_optimizer odometry_optimizer.cpp ISAMOptimizer.cpp ISAMOptimizer.h utils.cpp utils.h OdometryMeasurement.h QueuedOdometryMeasurementProcessor.cpp QueuedOdometryMeasurementProcessor.h)
+add_executable(odometry_optimizer odometry_optimizer.cpp ISAMOptimizer.cpp ISAMOptimizer.h utils.cpp utils.h OdometryMeasurement.h QueuedOdometryMeasurementProcessor.cpp QueuedOdometryMeasurementProcessor.h IMUQueue.cpp IMUQueue.h)
 target_link_libraries(odometry_optimizer gtsam ${catkin_LIBRARIES})
 
 add_executable(echo_node echo_node.cpp EchoPublisher.h)

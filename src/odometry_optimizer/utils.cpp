@@ -49,21 +49,3 @@ gtsam::Matrix6 toGtsamMatrix(boost::array<double, 36> arr) {
     return mat;
 }
 
-void integrateIMUMeasurements(deque<sensor_msgs::Imu> &imuDeque, std::shared_ptr<PreintegrationType> &imuMeasurements, ros::Time lastIMUTime) {
-    int maxIntg = 10;
-    int numIntg = 0;
-    auto lastTime = lastIMUTime;
-    // TODO: Should be while less than imuEndTime
-    while (numIntg < maxIntg && !imuDeque.empty()) {
-        auto imuMsg = imuDeque.back();
-        imuDeque.pop_back();
-        auto dt = imuMsg.header.stamp - lastTime;
-        auto linearMsg = imuMsg.linear_acceleration;
-        auto acc = Vector3(linearMsg.x, linearMsg.y, linearMsg.z);
-        auto angularMsg = imuMsg.angular_velocity;
-        auto omega = Vector3(angularMsg.x, angularMsg.y, angularMsg.z);
-        imuMeasurements->integrateMeasurement(acc, omega, dt.toSec());
-        lastTime = imuMsg.header.stamp;
-        numIntg++;
-    }
-}
