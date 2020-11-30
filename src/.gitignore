@@ -1,2 +1,12 @@
 rovio
+catkin_boost_python_buildtool
+catkin_simple
 cerberus_loam
+cerberus_loam_dev
+eigen_catkin
+eigen_checks
+gflags_catkin
+glog_catkin
+minkindr
+minkindr_ros
+numpy_eigen

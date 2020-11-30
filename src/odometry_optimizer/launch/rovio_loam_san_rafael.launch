@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
+    <!-- odometry fusion -->
     <node
             pkg="odometry_optimizer"
             type="odometry_optimizer"
@@ -16,13 +17,15 @@
     />
     <param name="imu_topic_name" value="/vn100/imu"/>
     <param name="odometry1_topic_name" value="/echo/rovio/odometry"/>
-    <param name="odometry2_topic_name" value="/echo/aft_mapped_to_init_CORRECTED"/>
+    <param name="odometry2_topic_name" value="/echoaft_mapped_to_init_CORRECTED"/>
 
     <param name="gyro_noise_density" value="0.00016968"/>
     <param name="gyro_random_walk" value="0.000019393"/>
     <param name="acc_noise_density" value="0.002"/>
     <param name="acc_random_walk" value="0.003"/>
+    <!-- /odometry fusion -->
 
+    <!-- rovio -->
     <node pkg="rovio" type="rovio_node" name="rovio" output="screen">
         <param name="filter_config" value="$(find odometry_optimizer)/cfg/rovio_san_rafael.info"/>
         <param name="camera0_config" value="$(find odometry_optimizer)/cfg/san_rafael_cam.yml"/>
@@ -30,32 +33,31 @@
         <param name="imu_topic_name" value="/vn100/imu"/>
         <!-- TODO add cam0_offset -->
     </node>
+    <!-- /rovio -->
 
-    <!-- Use simulation time for offline running, set to false if run online -->
-    <param name ="/use_sim_time" value="true"/>
+    <!-- loam -->
+    <param name="use_sim_time" value="true" /> #be sure to run --clock
 
-    <arg name="rviz" default="true" />
+    <include file="$(find loam)/launch/loam_nodelet.launch"/>
 
-    <arg name="pi" value="3.141592654"/>
-    <arg name="half_pi" value="1.570796327"/>
-    <arg name="z_offset" value="0.0"/>
-    <arg name="pitch_offset" value="$(eval 1.570796327+0.0)"/>  # (90+) 0 [ENU-deg]
-    <arg name="yaw_offset" value="$(eval 1.570796327+0.0)"/>  # (90+) 0 [ENU-deg]
-    <arg name="centerroot_tf" value="integrated_to_init_CORRECTED"/>  #aft_mapped_to_init_CORRECTED #integrated_to_init_CORRECTED
+    <!-- Frame Connector - map to vio_world -->
+    <node pkg="tf" type="static_transform_publisher" name="map_vio_tf" respawn="true" args="0 0 0 0 0 0 /map /vio_world 10 "/>
+    <!-- LiDAR-to-IMU Calibration -->
+    <node pkg="tf" type="static_transform_publisher" name="tf_lidar_imu" args="0.112564320944269 -0.001298882298959 -0.093064303672709 0.0058292876276243 0.0146726130394698 0.00626086513152012 /velodyne /imu 10"/>
+    <!-- <node pkg="tf" type="static_transform_publisher" name="tf_imu_lidar" args="-0.112588076376 0.00132018890783 0.0930352633261 -0.00573793472098 -0.0147085760206 -0.00617589950126 /imu /velodyne 10"/>   -->
+    <!-- LiDAR-to-Camera Calibration -->
+    <node pkg="tf" type="static_transform_publisher" name="tf_lidar_cam" args="0.143373033912513   0.001844679769965  -0.152734883569140  -1.563483662924555  -0.001122948541060  -1.755796784911929 /velodyne /cam_blackfly 10"/>
+    <!-- ros_static_lidar_to_cam =  0.143373033912513   0.001844679769965  -0.152734883569140  -1.563483662924555  -0.001122948541060  -1.755796784911929 -->
 
-    <node pkg="tf" type="static_transform_publisher" name="world_tf" respawn="true" args="0 0 $(arg z_offset) $(arg yaw_offset) 0 $(arg pitch_offset) /world /camera_init 10 "/>
-    <node pkg="tf" type="static_transform_publisher" name="world_tf_msfsupplemental" respawn="true" args="0 0 0 0 -$(arg half_pi) -$(arg half_pi) /camera_init /camera_init_CORRECTED 10 "/>
-    <node pkg="tf" type="static_transform_publisher" name="velodyne_tf" respawn="true" args="0 0 0 0 0 0 1 /$(arg centerroot_tf) /velodyne 10 "/>
+    <!-- DARPA Tunnel SR groundtruth  -->
+    <!-- <node pkg="tf2_ros" type="static_transform_publisher" name="map_to_course" args="-3.287109 0.003151 0.198201 -0.003400 0.005788 -0.002261 0.999975 sr map"/> -->
+    <!-- /loam -->
 
-    <node pkg="cerberus_loam" type="scanRegistration" name="scanRegistration" output="screen">
-        <param name="point_cloud_topic_name" value="/velodyne_points"/>
-    </node>
-    <node pkg="cerberus_loam" type="laserOdometry" name="laserOdometry" output="screen" respawn="true"/>
-    <node pkg="cerberus_loam" type="laserMapping" name="laserMapping" output="screen"/>
-    <node pkg="cerberus_loam" type="transformMaintenance" name="transformMaintenance" output="screen"/>
-
+    <!-- rviz -->
+    <arg name="rviz" value="true"/>
     <group if="$(arg rviz)">
-        <node launch-prefix="nice" pkg="rviz" type="rviz" name="rviz" args="-d $(find odometry_optimizer)/rviz_cfg/rovio_loam_vlp16.rviz" />
+        <node launch-prefix="nice" pkg="rviz" type="rviz" name="rviz" args="-d $(find odometry_optimizer)/rviz_cfg/rovio_loam_velodyne.rviz" />
     </group>
+    <!-- /rviz -->
 
 </launch>
