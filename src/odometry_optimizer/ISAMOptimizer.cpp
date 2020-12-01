@@ -80,18 +80,20 @@ void ISAMOptimizer::processOdometryMeasurement(const OdometryMeasurement &measur
     mu.lock();
     bool shouldPublish = false;
     geometry_msgs::PoseStamped poseStamped;
+    geometry_msgs::PoseStamped poseMsgInWorldFrame;
     switch (measurement.type) {
         case ODOMETRY_TYPE_ROVIO:
             poseStamped.header = measurement.msg.header;
             poseStamped.pose = measurement.msg.pose.pose;
-            shouldPublish = recvRovioOdometryAndUpdateState(poseStamped, noiseModel::Diagonal::Variances(
+            tfListenerNew.transformPose("/map", poseStamped,
+                                        poseMsgInWorldFrame); // Can fail if newer transform message has arrived
+            shouldPublish = recvRovioOdometryAndUpdateState(poseMsgInWorldFrame, noiseModel::Diagonal::Variances(
                     (Vector(6) << 0.1, 0.1, 0.1, 0.1, 0.1, 0.1).finished()));
             break;
         case ODOMETRY_TYPE_LOAM:
             if (loamHealthBuffer.isHealthy(measurement.msg.header.stamp)) {
                 poseStamped.header = measurement.msg.header;
                 poseStamped.pose = measurement.msg.pose.pose;
-                geometry_msgs::PoseStamped poseMsgInWorldFrame;
                 tfListenerNew.transformPose("/map", poseStamped,
                                             poseMsgInWorldFrame); // Can fail if newer transform message has arrived
                 shouldPublish = recvLidarOdometryAndUpdateState(poseMsgInWorldFrame, noiseModel::Diagonal::Variances(
@@ -178,8 +180,8 @@ ISAMOptimizer::recvOdometryAndUpdateState(const geometry_msgs::PoseStamped &msg,
         poseNum++;
         auto priorNoiseX = noiseModel::Diagonal::Sigmas((Vector(6)
                 << 0.0001, 0.0001, 0.0001, 0.0001, 0.0001, 0.0001).finished()); // We are dead sure about starting pos
-        auto priorNoiseV = noiseModel::Isotropic::Sigma(3, 0.1);
-        auto priorNoiseB = noiseModel::Isotropic::Sigma(6, 2);
+        auto priorNoiseV = noiseModel::Isotropic::Sigma(3, 0.01);
+        auto priorNoiseB = noiseModel::Isotropic::Sigma(6, 0.1);
         addPriorFactor(odometry, Vector3::Zero(), imuBias::ConstantBias(), priorNoiseX, priorNoiseV, priorNoiseB,
                        graph);
         addPoseVelocityAndBiasValues(poseNum, odometry, Vector3::Zero(), imuBias::ConstantBias(), values);

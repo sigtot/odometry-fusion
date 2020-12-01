@@ -1,11 +1,9 @@
 #include <ros/init.h>
 #include "QueuedOdometryMeasurementProcessor.h"
-#include <iostream>
 
 QueuedOdometryMeasurementProcessor::QueuedOdometryMeasurementProcessor(
         const function<void(const OdometryMeasurement &)> &processFn,
         const int minProcessCount) : processFn(processFn), minProcessCount(minProcessCount) {
-    cout << "Created processor" << endl;
     processThread = thread(&QueuedOdometryMeasurementProcessor::waitAndProcessMessages, this);
 }
 
