@@ -54,7 +54,7 @@ int main(int argc, char **argv) {
 
     ros::Subscriber subIMU = nh.subscribe(imuTopicName,
                                           1000,
-                                          &ISAMOptimizer::safeAddIMUMsgToDeque,
+                                          &ISAMOptimizer::recvIMUMsg,
                                           &isamOptimizer);
     ros::Subscriber subRovio = nh.subscribe(odometry1TopicName,
                                             1000,

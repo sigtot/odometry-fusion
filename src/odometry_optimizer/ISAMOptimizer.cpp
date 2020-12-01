@@ -44,39 +44,8 @@ ISAMOptimizer::ISAMOptimizer(ros::Publisher *pub, const boost::shared_ptr<Preint
     imuMeasurements->resetIntegration();
 }
 
-void ISAMOptimizer::safeAddIMUMsgToDeque(const sensor_msgs::Imu &msg) {
+void ISAMOptimizer::recvIMUMsg(const sensor_msgs::Imu &msg) {
     imuQueue.addMeasurement(msg);
-}
-
-void ISAMOptimizer::recvIMUMsgAndUpdateState(const sensor_msgs::Imu &msg) {
-    mu.lock();
-    auto imuTime = ros::Time(msg.header.stamp.sec, msg.header.stamp.nsec);
-    auto linearMsg = msg.linear_acceleration;
-    auto acc = Vector3(linearMsg.x, linearMsg.y, linearMsg.z);
-    auto angularMsg = msg.angular_velocity;
-    auto omega = Vector3(angularMsg.x, angularMsg.y, angularMsg.z);
-    recvIMUAndUpdateState(acc, omega, imuTime);
-    mu.unlock();
-}
-
-void ISAMOptimizer::recvIMUAndUpdateState(const Vector3 &acc, const Vector3 &omega, ros::Time imuTime) {
-    if (!imuReady) {
-        lastIMUTime = imuTime;
-        imuReady = true;
-        mu.unlock();
-        return;
-    }
-    if (imuTime < lastIMUTime) {
-        // Oops, something is out of order: Just ignore the message until we get something new
-        ROS_INFO("Got out of order IMU message");
-        mu.unlock();
-        return;
-    }
-    auto dt = imuTime - lastIMUTime;
-    imuMeasurements->integrateMeasurement(acc, omega, dt.toSec());
-    // add to buffer
-    imuCount++;
-    lastIMUTime = imuTime;
 }
 
 void ISAMOptimizer::publishUpdatedPoses() {
@@ -145,7 +114,7 @@ void ISAMOptimizer::recvLidarOdometryAndAddToQueue(const nav_msgs::Odometry &msg
     OdometryMeasurement measurement{ODOMETRY_TYPE_LOAM, msg, loamHealthBuffer.isHealthy(msg.header.stamp)};
     auto added = odometryMeasurementProcessor.addMeasurement(measurement);
     if (!added) {
-        cout << "Did not add loam measurement to queue because loam is degenerate" << endl;
+        cout << "Did not add loam measurement to queue because loam is unhealthy" << endl;
     }
 }
 

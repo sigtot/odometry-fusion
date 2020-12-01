@@ -52,9 +52,7 @@ private:
 public:
     explicit ISAMOptimizer(ros::Publisher *pub, const boost::shared_ptr<PreintegrationCombinedParams>& imu_params);
 
-    void recvIMUMsgAndUpdateState(const sensor_msgs::Imu &msg);
-    void recvIMUAndUpdateState(const Vector3& acc, const Vector3& omega, ros::Time imuTime);
-    void safeAddIMUMsgToDeque(const sensor_msgs::Imu &msg);
+    void recvIMUMsg(const sensor_msgs::Imu &msg);
 
     void recvRovioOdometryAndAddToQueue(const nav_msgs::Odometry &msg);
     void recvLidarOdometryAndAddToQueue(const nav_msgs::Odometry &msg);
