@@ -50,7 +50,6 @@ void EchoPublisher<T>::echo(const T &msg) {
             this_thread::sleep_for(std::chrono::milliseconds(delayMillis));
         }
         pub.publish(msg);
-        cout << "Echoed msg on " << publishTopic() << endl;
     } else {
         cout << "This publisher is disabled so did not echo message on " << publishTopic() << endl;
     }

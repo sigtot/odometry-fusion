@@ -42,5 +42,4 @@ void IMUQueue::integrateIMUMeasurements(std::shared_ptr<PreintegrationType> &imu
             numIntg++;
         }
     }
-    cout << "Integrated " << numIntg << " imu measurements" << endl;
 }

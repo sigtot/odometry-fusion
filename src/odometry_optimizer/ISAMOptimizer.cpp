@@ -68,7 +68,6 @@ void ISAMOptimizer::publishNewestPose() {
     msg.pose.pose = toPoseMsg(newPose);
     msg.header.frame_id = "/map";
     pub.publish(msg);
-    ROS_INFO("Published updated pose");
 }
 
 // TODO: Remove
@@ -207,7 +206,6 @@ ISAMOptimizer::recvOdometryAndUpdateState(const geometry_msgs::PoseStamped &msg,
         imuQueue.integrateIMUMeasurements(imuMeasurements, lastOdometryMeasurement.msg.header.stamp, msg.header.stamp);
         addCombinedFactor(poseNum, lastOdometry, odometry, imuMeasurements, noise, graph);
         NavState navState = imuMeasurements->predict(getPrevIMUState(), getPrevIMUBias());
-        getPrevIMUBias().print("prev imu bias: ");
         addValuesOnIMU(poseNum, navState, getPrevIMUBias(), values);
         try {
             isam.update(graph, values);
