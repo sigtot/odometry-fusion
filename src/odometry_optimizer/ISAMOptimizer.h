@@ -6,6 +6,7 @@
 #include <ros/ros.h>
 #include <sensor_msgs/Imu.h>
 #include <nav_msgs/Odometry.h>
+#include <std_msgs/Header.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <gtsam/nonlinear/NonlinearISAM.h>
 #include <gtsam/nonlinear/ISAM2.h>
@@ -21,6 +22,7 @@
 #include <condition_variable>
 #include "QueuedOdometryMeasurementProcessor.h"
 #include "IMUQueue.h"
+#include "HealthBuffer.h"
 
 using namespace gtsam;
 using namespace std;
@@ -45,6 +47,7 @@ private:
     OdometryMeasurement lastOdometryMeasurement;
 
     QueuedOdometryMeasurementProcessor odometryMeasurementProcessor;
+    HealthBuffer loamHealthBuffer;
     IMUQueue imuQueue;
 public:
     explicit ISAMOptimizer(ros::Publisher *pub, const boost::shared_ptr<PreintegrationCombinedParams>& imu_params);
@@ -58,6 +61,8 @@ public:
     bool recvRovioOdometryAndUpdateState(const geometry_msgs::PoseStamped &msg, const boost::shared_ptr<noiseModel::Gaussian>& noise);
     bool recvLidarOdometryAndUpdateState(const geometry_msgs::PoseStamped &msg, const boost::shared_ptr<noiseModel::Gaussian>& noise);
     bool recvOdometryAndUpdateState(const geometry_msgs::PoseStamped &msg, int &lastPoseNum, Pose3 &lastOdometry, const boost::shared_ptr<noiseModel::Gaussian>& noise);
+
+    void recvLoamHealthMsg(const std_msgs::Header &msg);
 
     void processOdometryMeasurements();
     void processOdometryMeasurement(const OdometryMeasurement &measurement);

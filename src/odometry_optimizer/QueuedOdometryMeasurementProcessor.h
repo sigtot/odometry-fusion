@@ -17,7 +17,7 @@ public:
      */
     QueuedOdometryMeasurementProcessor(const function<void(const OdometryMeasurement &)> &processFn, int minProcessCount);
 
-    void addMeasurement(const OdometryMeasurement &measurement);
+    bool addMeasurement(const OdometryMeasurement &measurement);
 
     virtual ~QueuedOdometryMeasurementProcessor();
 

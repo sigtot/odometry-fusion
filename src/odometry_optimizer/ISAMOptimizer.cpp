@@ -34,6 +34,7 @@ ISAM2Params getParams() {
 ISAMOptimizer::ISAMOptimizer(ros::Publisher *pub, const boost::shared_ptr<PreintegrationCombinedParams> &imu_params)
         : pub(*pub),
           isam(ISAM2(ISAM2Params())),
+          loamHealthBuffer(15, 3),
           odometryMeasurementProcessor(std::bind(&ISAMOptimizer::processOdometryMeasurement,
                                                  this,
                                                  std::placeholders::_1),
@@ -122,7 +123,8 @@ void ISAMOptimizer::processOdometryMeasurement(const OdometryMeasurement &measur
             poseStamped.header = measurement.msg.header;
             poseStamped.pose = measurement.msg.pose.pose;
             geometry_msgs::PoseStamped poseMsgInWorldFrame;
-            tfListenerNew.transformPose("/map", poseStamped, poseMsgInWorldFrame); // Can fail if newer transform message has arrived
+            tfListenerNew.transformPose("/map", poseStamped,
+                                        poseMsgInWorldFrame); // Can fail if newer transform message has arrived
             shouldPublish = recvLidarOdometryAndUpdateState(poseMsgInWorldFrame, noiseModel::Diagonal::Variances(
                     (Vector(6) << 0.2, 0.2, 0.2, 0.2, 0.2, 0.2).finished()));
             break;
@@ -140,8 +142,11 @@ void ISAMOptimizer::recvRovioOdometryAndAddToQueue(const nav_msgs::Odometry &msg
 }
 
 void ISAMOptimizer::recvLidarOdometryAndAddToQueue(const nav_msgs::Odometry &msg) {
-    OdometryMeasurement measurement{ODOMETRY_TYPE_LOAM, msg, true};
-    odometryMeasurementProcessor.addMeasurement(measurement);
+    OdometryMeasurement measurement{ODOMETRY_TYPE_LOAM, msg, loamHealthBuffer.isHealthy(msg.header.stamp)};
+    auto added = odometryMeasurementProcessor.addMeasurement(measurement);
+    if (!added) {
+        cout << "Did not add loam measurement to queue because loam is degenerate" << endl;
+    }
 }
 
 bool ISAMOptimizer::recvRovioOdometryAndUpdateState(const geometry_msgs::PoseStamped &msg,
@@ -217,7 +222,8 @@ ISAMOptimizer::recvOdometryAndUpdateState(const geometry_msgs::PoseStamped &msg,
         lastPoseNum = poseNum;
         return true;
     }
-    auto haveIMUMeasurements = imuQueue.hasMeasurementsInRange(lastOdometryMeasurement.msg.header.stamp, msg.header.stamp);
+    auto haveIMUMeasurements = imuQueue.hasMeasurementsInRange(lastOdometryMeasurement.msg.header.stamp,
+                                                               msg.header.stamp);
     if (haveIMUMeasurements) {
         poseNum++;
         if (lastPoseNum > 0) {
@@ -267,4 +273,8 @@ NavState ISAMOptimizer::getPrevIMUState() {
 
 imuBias::ConstantBias ISAMOptimizer::getPrevIMUBias() {
     return isam.calculateEstimate<imuBias::ConstantBias>(B(poseNum - 1));
+}
+
+void ISAMOptimizer::recvLoamHealthMsg(const std_msgs::Header &msg) {
+    loamHealthBuffer.addMeasurement(msg);
 }

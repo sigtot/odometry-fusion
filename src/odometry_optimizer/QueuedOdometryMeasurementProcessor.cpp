@@ -29,12 +29,14 @@ void QueuedOdometryMeasurementProcessor::waitAndProcessMessages() {
     }
 }
 
-void QueuedOdometryMeasurementProcessor::addMeasurement(const OdometryMeasurement &measurement) {
-    {
+bool QueuedOdometryMeasurementProcessor::addMeasurement(const OdometryMeasurement &measurement) {
+    if (measurement.healthy) {
         lock_guard<mutex> lock(measurementMutex);
         measurements[measurement.msg.header.stamp.toSec()] = measurement;
+        cv.notify_one();
+        return true;
     }
-    cv.notify_one();
+    return false;
 }
 
 QueuedOdometryMeasurementProcessor::~QueuedOdometryMeasurementProcessor() {

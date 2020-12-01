@@ -43,13 +43,14 @@ int main(int argc, char **argv) {
     auto pub = nh.advertise<nav_msgs::Odometry>("/optimized_pose", 1000);
 
     ISAMOptimizer isamOptimizer(&pub, imu_params);
-    std::string imuTopicName, odometry1TopicName, odometry2TopicName;
+    std::string imuTopicName, odometry1TopicName, odometry2TopicName, loamHealthTopicName;
 
     if (!nh.getParam("imu_topic_name", imuTopicName)) {
         cout << "Please supply a value for imu_topic_name" << endl;
     }
     nh.getParam("odometry1_topic_name", odometry1TopicName);
     nh.getParam("odometry2_topic_name", odometry2TopicName);
+    nh.getParam("loam_health_topic_name", loamHealthTopicName);
 
     ros::Subscriber subIMU = nh.subscribe(imuTopicName,
                                           1000,
@@ -63,5 +64,9 @@ int main(int argc, char **argv) {
                                             1000,
                                             &ISAMOptimizer::recvLidarOdometryAndAddToQueue,
                                             &isamOptimizer);
+    ros::Subscriber subLoamHealth = nh.subscribe(loamHealthTopicName,
+                                                 1000,
+                                                 &ISAMOptimizer::recvLoamHealthMsg,
+                                                 &isamOptimizer);
     ros::spin();
 }

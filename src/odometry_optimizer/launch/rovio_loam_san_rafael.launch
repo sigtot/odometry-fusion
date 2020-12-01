@@ -17,7 +17,8 @@
     />
     <param name="imu_topic_name" value="/vn100/imu"/>
     <param name="odometry1_topic_name" value="/echo/rovio/odometry"/>
-    <param name="odometry2_topic_name" value="/echoaft_mapped_to_init_CORRECTED"/>
+    <param name="odometry2_topic_name" value="/echo/aft_mapped_to_init_CORRECTED"/>
+    <param name="loam_health_topic_name" value="/laser_odom_status"/>
 
     <param name="gyro_noise_density" value="0.00016968"/>
     <param name="gyro_random_walk" value="0.000019393"/>

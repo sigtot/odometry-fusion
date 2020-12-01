@@ -5,33 +5,33 @@ find_package(GTSAM REQUIRED)
 find_package(Boost REQUIRED COMPONENTS chrono)
 
 find_package(catkin REQUIRED COMPONENTS
-  roscpp
-  message_generation
-  std_msgs
+        roscpp
+        message_generation
+        std_msgs
         tf
         tf2
         tf2_ros
         tf2_msgs
         tf2_geometry_msgs
-)
+        )
 
 add_service_files(
-  FILES
-  ToggleEcho.srv
+        FILES
+        ToggleEcho.srv
 )
 
 generate_messages(
-  DEPENDENCIES
-  std_msgs
+        DEPENDENCIES
+        std_msgs
 )
 
 catkin_package(
-  CATKIN_DEPENDS message_runtime std_msgs
+        CATKIN_DEPENDS message_runtime std_msgs
 )
 
 include_directories(include ${catkin_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS} ${GTSAM_INCLUDE_DIRS})
 
-add_executable(odometry_optimizer odometry_optimizer.cpp ISAMOptimizer.cpp ISAMOptimizer.h utils.cpp utils.h OdometryMeasurement.h QueuedOdometryMeasurementProcessor.cpp QueuedOdometryMeasurementProcessor.h IMUQueue.cpp IMUQueue.h)
+add_executable(odometry_optimizer odometry_optimizer.cpp ISAMOptimizer.cpp ISAMOptimizer.h utils.cpp utils.h OdometryMeasurement.h QueuedOdometryMeasurementProcessor.cpp QueuedOdometryMeasurementProcessor.h IMUQueue.cpp IMUQueue.h HealthBuffer.cpp HealthBuffer.h)
 target_link_libraries(odometry_optimizer gtsam ${catkin_LIBRARIES})
 
 add_executable(echo_node echo_node.cpp EchoPublisher.h)
