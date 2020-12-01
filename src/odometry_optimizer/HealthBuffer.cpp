@@ -37,6 +37,10 @@ bool HealthBuffer::isHealthy(ros::Time ts) {
     }
 }
 
+bool HealthBuffer::isDegenerate() const {
+    return degenerate;
+}
+
 void HealthBuffer::print(const string &prefix) {
     lock_guard<mutex> lock(mu);
     cout << prefix;

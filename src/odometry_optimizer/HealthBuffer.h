@@ -32,6 +32,8 @@ public:
 
     bool isHealthy(ros::Time ts);
 
+    bool isDegenerate() const;
+
     void print(const string &prefix);
 };
 
