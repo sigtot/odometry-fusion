@@ -10,13 +10,13 @@ QueuedOdometryMeasurementProcessor::QueuedOdometryMeasurementProcessor(
 }
 
 void QueuedOdometryMeasurementProcessor::waitAndProcessMessages() {
-    unique_lock<std::mutex> nextProcessNotifier(notifierMutex);
+    unique_lock<std::mutex> newMeasurementNotifier(newMeasurementNotifierMutex);
     while (!ros::isShuttingDown()) {
         OdometryMeasurement measurement;
         bool haveMeasurement = false;
         {
             lock_guard<mutex> lock(measurementMutex);
-            if (measurements.size() > minProcessCount) {
+            if (measurements.size() >= minProcessCount) {
                 measurement = measurements.begin()->second;
                 measurements.erase(measurements.begin());
                 haveMeasurement = true;
@@ -25,18 +25,18 @@ void QueuedOdometryMeasurementProcessor::waitAndProcessMessages() {
         if (haveMeasurement) {
             processFn(measurement);
         }
-        cv.wait(nextProcessNotifier);
+        if(measurements.size() < minProcessCount) {
+            cv.wait(newMeasurementNotifier);
+        }
     }
 }
 
-bool QueuedOdometryMeasurementProcessor::addMeasurement(const OdometryMeasurement &measurement) {
-    if (measurement.healthy) {
+void QueuedOdometryMeasurementProcessor::addMeasurement(const OdometryMeasurement &measurement) {
+    {
         lock_guard<mutex> lock(measurementMutex);
         measurements[measurement.msg.header.stamp.toSec()] = measurement;
-        cv.notify_one();
-        return true;
     }
-    return false;
+    cv.notify_one();
 }
 
 QueuedOdometryMeasurementProcessor::~QueuedOdometryMeasurementProcessor() {

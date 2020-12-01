@@ -21,13 +21,14 @@ bool HealthBuffer::isHealthy(ros::Time ts) {
         return false;
     }
     pair<double, int> closest = *buffer.begin();
+    double closestTimeDiff = abs(closest.first - ts.toSec());
     for (auto &it : buffer) {
         double timeDiff = abs(it.first - ts.toSec());
-        if (timeDiff < closest.first) {
+        if (timeDiff < closestTimeDiff) {
             closest = it;
+            closestTimeDiff = timeDiff;
         }
     }
-    double closestTimeDiff = abs(closest.first - ts.toSec());
     if (closestTimeDiff < SAME_TIME_THRESH) {
         return closest.second == 0;
     } else {

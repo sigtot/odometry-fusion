@@ -38,7 +38,7 @@ ISAMOptimizer::ISAMOptimizer(ros::Publisher *pub, const boost::shared_ptr<Preint
           odometryMeasurementProcessor(std::bind(&ISAMOptimizer::processOdometryMeasurement,
                                                  this,
                                                  std::placeholders::_1),
-                                       3) {
+                                       4) {
     auto imuBias = imuBias::ConstantBias(); // Initialize at zero bias
     imuMeasurements = std::make_shared<PreintegratedCombinedMeasurements>(imu_params, imuBias);
     imuMeasurements->resetIntegration();
@@ -88,13 +88,15 @@ void ISAMOptimizer::processOdometryMeasurement(const OdometryMeasurement &measur
                     (Vector(6) << 0.1, 0.1, 0.1, 0.1, 0.1, 0.1).finished()));
             break;
         case ODOMETRY_TYPE_LOAM:
-            poseStamped.header = measurement.msg.header;
-            poseStamped.pose = measurement.msg.pose.pose;
-            geometry_msgs::PoseStamped poseMsgInWorldFrame;
-            tfListenerNew.transformPose("/map", poseStamped,
-                                        poseMsgInWorldFrame); // Can fail if newer transform message has arrived
-            shouldPublish = recvLidarOdometryAndUpdateState(poseMsgInWorldFrame, noiseModel::Diagonal::Variances(
-                    (Vector(6) << 0.2, 0.2, 0.2, 0.2, 0.2, 0.2).finished()));
+            if (loamHealthBuffer.isHealthy(measurement.msg.header.stamp)) {
+                poseStamped.header = measurement.msg.header;
+                poseStamped.pose = measurement.msg.pose.pose;
+                geometry_msgs::PoseStamped poseMsgInWorldFrame;
+                tfListenerNew.transformPose("/map", poseStamped,
+                                            poseMsgInWorldFrame); // Can fail if newer transform message has arrived
+                shouldPublish = recvLidarOdometryAndUpdateState(poseMsgInWorldFrame, noiseModel::Diagonal::Variances(
+                        (Vector(6) << 0.1, 0.1, 0.1, 0.1, 0.1, 0.1).finished()));
+            }
             break;
     }
     if (shouldPublish) {
@@ -105,16 +107,13 @@ void ISAMOptimizer::processOdometryMeasurement(const OdometryMeasurement &measur
 }
 
 void ISAMOptimizer::recvRovioOdometryAndAddToQueue(const nav_msgs::Odometry &msg) {
-    OdometryMeasurement measurement{ODOMETRY_TYPE_ROVIO, msg, true};
+    OdometryMeasurement measurement{ODOMETRY_TYPE_ROVIO, msg};
     odometryMeasurementProcessor.addMeasurement(measurement);
 }
 
 void ISAMOptimizer::recvLidarOdometryAndAddToQueue(const nav_msgs::Odometry &msg) {
-    OdometryMeasurement measurement{ODOMETRY_TYPE_LOAM, msg, loamHealthBuffer.isHealthy(msg.header.stamp)};
-    auto added = odometryMeasurementProcessor.addMeasurement(measurement);
-    if (!added) {
-        cout << "Did not add loam measurement to queue because loam is unhealthy" << endl;
-    }
+    OdometryMeasurement measurement{ODOMETRY_TYPE_LOAM, msg};
+    odometryMeasurementProcessor.addMeasurement(measurement);
 }
 
 bool ISAMOptimizer::recvRovioOdometryAndUpdateState(const geometry_msgs::PoseStamped &msg,

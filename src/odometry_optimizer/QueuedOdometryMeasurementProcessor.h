@@ -17,7 +17,7 @@ public:
      */
     QueuedOdometryMeasurementProcessor(const function<void(const OdometryMeasurement &)> &processFn, int minProcessCount);
 
-    bool addMeasurement(const OdometryMeasurement &measurement);
+    void addMeasurement(const OdometryMeasurement &measurement);
 
     virtual ~QueuedOdometryMeasurementProcessor();
 
@@ -26,7 +26,7 @@ private:
 
     const int minProcessCount;
 
-    mutex notifierMutex;
+    mutex newMeasurementNotifierMutex;
     condition_variable cv;
 
     mutex measurementMutex;
