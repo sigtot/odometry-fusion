@@ -1,7 +1,7 @@
 #include <cmath>
 #include "HealthBuffer.h"
 
-#define SAME_TIME_THRESH 0.04
+#define SAME_TIME_THRESH 0.1
 
 HealthBuffer::HealthBuffer(int bufferSize, int degenerateThresh) : bufferSize(bufferSize),
                                                                    degenerateThresh(degenerateThresh) {}
@@ -17,6 +17,9 @@ void HealthBuffer::addMeasurement(const std_msgs::Header &measurement) {
 
 bool HealthBuffer::isHealthy(ros::Time ts) {
     lock_guard<mutex> lock(mu);
+    if (degenerate) {
+        return false;
+    }
     pair<double, int> closest = *buffer.begin();
     for (auto &it : buffer) {
         double timeDiff = abs(it.first - ts.toSec());
@@ -26,12 +29,10 @@ bool HealthBuffer::isHealthy(ros::Time ts) {
     }
     double closestTimeDiff = abs(closest.first - ts.toSec());
     if (closestTimeDiff < SAME_TIME_THRESH) {
-        cout << "Closest health msg has time diff " << closestTimeDiff << ". measurement: " << ts.toSec()
-             << " health msg: " << closest.first;
         return closest.second == 0;
     } else {
         cout << "Found no health msg with time diff less than " << SAME_TIME_THRESH << " closest was "
-             << closestTimeDiff << ". measurement: " << ts.toSec() << " health msg: " << closest.first;
+             << closestTimeDiff << ". measurement: " << ts.toSec() << " health msg: " << closest.first << endl;
         return false;
     }
 }
