@@ -31,7 +31,10 @@
     <param name="rovio_covariance" value="0.01"/>
     <param name="loam_covariance" value="0.01"/>
 
+    <!-- 0: no extra priors, 1-inf: add a prior on x with the value of rovio every n poses -->
     <param name="extra_rovio_prior_interval" value="0"/>
+
+    <param name="publish_point_cloud" type="bool" value="true"/>
     <!-- /odometry fusion -->
 
     <!-- rovio -->

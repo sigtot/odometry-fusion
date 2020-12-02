@@ -22,6 +22,9 @@
 #include "message_filters/subscriber.h"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.h"
 
+#include <chrono>
+#include <thread>
+
 using symbol_shorthand::B;  // Bias  (ax,ay,az,gx,gy,gz)
 using symbol_shorthand::V;  // Vel   (xdot,ydot,zdot)
 using symbol_shorthand::X;  // Pose3 (x,y,z,r,p,y)
@@ -32,9 +35,12 @@ ISAM2Params getParams() {
     isam2Params.factorization = ISAM2Params::CHOLESKY;
 }
 
-ISAMOptimizer::ISAMOptimizer(ros::Publisher *pub, const boost::shared_ptr<PreintegrationCombinedParams> &imu_params, double rovioCovariance, double loamCovariance, int extraRovioPriorInterval)
+ISAMOptimizer::ISAMOptimizer(ros::Publisher *pub, const boost::shared_ptr<PreintegrationCombinedParams> &imu_params,
+                             const tf::StampedTransform &cameraInitTransform, double rovioCovariance,
+                             double loamCovariance, int extraRovioPriorInterval)
         : pub(*pub),
           isam(ISAM2(ISAM2Params())),
+          cameraInitTransform(cameraInitTransform),
           rovioCovariance(rovioCovariance),
           loamCovariance(loamCovariance),
           extraRovioPriorInterval(extraRovioPriorInterval),
@@ -85,10 +91,10 @@ void ISAMOptimizer::publishNewestFrame() {
     tf::Quaternion tfQuat(poseQuat.x(), poseQuat.y(), poseQuat.z(), poseQuat.w());
     tf::Vector3 tfOrigin(poseTrans.x(), poseTrans.y(), poseTrans.z());
 
-    transform.setRotation(tfQuat);
+    transform.setRotation(tfQuat.normalized());
     transform.setOrigin(tfOrigin);
 
-    tfBr.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "/map", "/origin_fused"));
+    tfBr.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "/map", "/velodyne_fused"));
 }
 
 // TODO: Remove
@@ -233,6 +239,7 @@ ISAMOptimizer::recvOdometryAndUpdateState(const geometry_msgs::PoseStamped &msg,
         addCombinedFactor(poseNum, lastOdometry, odometry, imuMeasurements, noise, graph);
         NavState navState = imuMeasurements->predict(getPrevIMUState(), getPrevIMUBias());
         addValuesOnIMU(poseNum, navState, getPrevIMUBias(), values);
+
         try {
             isam.update(graph, values);
         } catch (gtsam::IndeterminantLinearSystemException e) {

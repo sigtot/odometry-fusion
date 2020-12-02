@@ -47,6 +47,8 @@ private:
     tf::TransformListener tfListenerNew;
     OdometryMeasurement lastOdometryMeasurement;
 
+    tf::StampedTransform cameraInitTransform;
+
     QueuedOdometryMeasurementProcessor odometryMeasurementProcessor;
     HealthBuffer loamHealthBuffer;
     IMUQueue imuQueue;
@@ -58,7 +60,9 @@ private:
 
     const int extraRovioPriorInterval;
 public:
-    explicit ISAMOptimizer(ros::Publisher *pub, const boost::shared_ptr<PreintegrationCombinedParams>& imu_params, double rovioCovariance, double loamCovariance, int extraRovioPriorInterval);
+    explicit ISAMOptimizer(ros::Publisher *pub, const boost::shared_ptr<PreintegrationCombinedParams> &imu_params,
+                           const tf::StampedTransform &cameraInitTransform, double rovioCovariance,
+                           double loamCovariance, int extraRovioPriorInterval);
 
     void recvIMUMsg(const sensor_msgs::Imu &msg);
 

@@ -3,6 +3,7 @@ project(odometry_optimizer)
 
 find_package(GTSAM REQUIRED)
 find_package(Boost REQUIRED COMPONENTS chrono)
+find_package(PCL REQUIRED)
 
 find_package(catkin REQUIRED COMPONENTS
         roscpp
@@ -13,6 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
         tf2_ros
         tf2_msgs
         tf2_geometry_msgs
+        pcl_ros
         )
 
 add_service_files(
@@ -29,10 +31,15 @@ catkin_package(
         CATKIN_DEPENDS message_runtime std_msgs
 )
 
-include_directories(include ${catkin_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS} ${GTSAM_INCLUDE_DIRS})
+include_directories(include ${catkin_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS} ${GTSAM_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS})
 
-add_executable(odometry_optimizer odometry_optimizer.cpp ISAMOptimizer.cpp ISAMOptimizer.h utils.cpp utils.h OdometryMeasurement.h QueuedOdometryMeasurementProcessor.cpp QueuedOdometryMeasurementProcessor.h IMUQueue.cpp IMUQueue.h HealthBuffer.cpp HealthBuffer.h)
-target_link_libraries(odometry_optimizer gtsam ${catkin_LIBRARIES})
+link_directories(${PCL_LIBRARY_DIRS})
+
+add_definitions(${PCL_DEFINITIONS})
+
+add_executable(odometry_optimizer odometry_optimizer.cpp ISAMOptimizer.cpp ISAMOptimizer.h utils.cpp utils.h OdometryMeasurement.h QueuedOdometryMeasurementProcessor.cpp QueuedOdometryMeasurementProcessor.h IMUQueue.cpp IMUQueue.h HealthBuffer.cpp HealthBuffer.h PointCloudPublisher.cpp PointCloudPublisher.h)
+target_link_libraries(odometry_optimizer gtsam ${catkin_LIBRARIES} ${PCL_LIBRARIES})
+
 
 add_executable(echo_node echo_node.cpp EchoPublisher.h)
 target_link_libraries(echo_node ${catkin_LIBRARIES})

@@ -1,9 +1,10 @@
 #include <gtsam/nonlinear/LevenbergMarquardtOptimizer.h>
 #include <ros/ros.h>
 #include <nav_msgs/Odometry.h>
-#include "ISAMOptimizer.h"
 #include <iostream>
 #include <gtsam/navigation/CombinedImuFactor.h>
+#include "ISAMOptimizer.h"
+#include "PointCloudPublisher.h"
 
 using namespace std;
 using namespace gtsam;
@@ -12,6 +13,20 @@ int main(int argc, char **argv) {
     ros::init(argc, argv, "odometry_optimizer");
     ros::NodeHandle nh;
 
+    tf::TransformListener tfListener;
+    cout << "Looking up camera_init transform..." << endl;
+    tf::StampedTransform cameraInitTransform;
+    while (!ros::isShuttingDown()) {
+        // Can't make waitForTransform work for some reason, so doing this ad-hoc solution instead
+        try {
+            tfListener.lookupTransform("/map", "/camera_init_CORRECTED", ros::Time(0), cameraInitTransform);
+            break;
+        } catch (tf::LookupException &e) {
+            cout << "Still waiting for transform from map to camera_init..." << endl;
+            this_thread::sleep_for(std::chrono::milliseconds(1000));
+        }
+    }
+    cout << "Have transform for camera_init: " << cameraInitTransform.stamp_ << endl;
 
     bool haveNoiseParams = true;
     double gyroNoiseDensity, gyroRandomWalk, accNoiseDensity, accRandomWalk, rovioCovariance, loamCovariance, gravitationalAcceleration, integrationCovariance, biasAccOmegaInt;
@@ -46,7 +61,8 @@ int main(int argc, char **argv) {
 
     auto pub = nh.advertise<nav_msgs::Odometry>("/optimized_pose", 1000);
 
-    ISAMOptimizer isamOptimizer(&pub, imu_params, rovioCovariance, loamCovariance, extraRovioPriorInterval);
+    ISAMOptimizer isamOptimizer(&pub, imu_params, tf::StampedTransform(), rovioCovariance, loamCovariance,
+                                extraRovioPriorInterval);
     std::string imuTopicName, odometry1TopicName, odometry2TopicName, loamHealthTopicName;
 
     if (!nh.getParam("imu_topic_name", imuTopicName)) {
@@ -72,5 +88,18 @@ int main(int argc, char **argv) {
                                                  1000,
                                                  &ISAMOptimizer::recvLoamHealthMsg,
                                                  &isamOptimizer);
+
+    bool publishPointCloud = false;
+    ros::Publisher pointCloudPub;
+    ros::Subscriber subPointCloud;
+    PointCloudPublisher pointCloudPublisher("/velodyne_fused", pointCloudPub, 15);
+    if (nh.getParam("publish_point_cloud", publishPointCloud) && publishPointCloud) {
+        pointCloudPub = nh.advertise<sensor_msgs::PointCloud2>("/velodyne_cloud_in_fused_frame", 10);
+        subPointCloud = nh.subscribe("/velodyne_cloud_registered",
+                                                     10,
+                                                     &PointCloudPublisher::republishInNewFrame,
+                                                     &pointCloudPublisher);
+    }
+
     ros::spin();
 }
