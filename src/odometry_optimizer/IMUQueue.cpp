@@ -1,4 +1,5 @@
 #include "IMUQueue.h"
+#include <iostream>
 
 IMUQueue::IMUQueue() = default;
 
@@ -22,13 +23,15 @@ bool IMUQueue::hasMeasurementsInRange(ros::Time start, ros::Time end) {
     return betweenCount > 1; // TODO make it > 0?
 }
 
-void IMUQueue::integrateIMUMeasurements(std::shared_ptr<PreintegrationType> &imuMeasurements, ros::Time start, ros::Time end) {
+int IMUQueue::integrateIMUMeasurements(std::shared_ptr<PreintegrationType> &imuMeasurements, ros::Time start, ros::Time end) {
     lock_guard<mutex> lock(mu);
     int numIntg = 0;
     auto lastTime = start;
+    bool ranToEnd = true;
     for (auto &it : imuMap) {
         auto imuMsg = it.second;
         if (imuMsg.header.stamp > end) {
+            ranToEnd = false;
             break;
         }
         if (imuMsg.header.stamp > start) {
@@ -42,4 +45,8 @@ void IMUQueue::integrateIMUMeasurements(std::shared_ptr<PreintegrationType> &imu
             numIntg++;
         }
     }
+    if (ranToEnd) {
+        cout << "WARN: imu integration ran to the end of the queue. This could imply that some msgs were lost" << endl;
+    }
+    return numIntg;
 }

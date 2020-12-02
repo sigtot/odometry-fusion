@@ -21,7 +21,7 @@ public:
 
     bool hasMeasurementsInRange(ros::Time start, ros::Time end);
 
-    void integrateIMUMeasurements(std::shared_ptr<PreintegrationType> &imuMeasurements, ros::Time start, ros::Time end);
+    int integrateIMUMeasurements(std::shared_ptr<PreintegrationType> &imuMeasurements, ros::Time start, ros::Time end);
 
 };
 
