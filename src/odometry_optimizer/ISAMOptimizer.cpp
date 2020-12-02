@@ -183,7 +183,7 @@ ISAMOptimizer::recvOdometryAndUpdateState(const geometry_msgs::PoseStamped &msg,
         auto priorNoiseX = noiseModel::Diagonal::Sigmas((Vector(6)
                 << 0.0001, 0.0001, 0.0001, 0.0001, 0.0001, 0.0001).finished()); // We are dead sure about starting pos
         auto priorNoiseV = noiseModel::Isotropic::Sigma(3, 0.01);
-        auto priorNoiseB = noiseModel::Isotropic::Sigma(6, 0.1);
+        auto priorNoiseB = noiseModel::Isotropic::Sigma(6, 1);
         addPriorFactor(odometry, Vector3::Zero(), imuBias::ConstantBias(), priorNoiseX, priorNoiseV, priorNoiseB,
                        graph);
         addPoseVelocityAndBiasValues(poseNum, odometry, Vector3::Zero(), imuBias::ConstantBias(), values);

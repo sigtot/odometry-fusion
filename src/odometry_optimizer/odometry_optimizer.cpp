@@ -14,11 +14,13 @@ int main(int argc, char **argv) {
 
 
     bool haveNoiseParams = true;
-    double gyroNoiseDensity, gyroRandomWalk, accNoiseDensity, accRandomWalk, rovioCovariance, loamCovariance, gravitationalAcceleration;
+    double gyroNoiseDensity, gyroRandomWalk, accNoiseDensity, accRandomWalk, rovioCovariance, loamCovariance, gravitationalAcceleration, integrationCovariance, biasAccOmegaInt;
     haveNoiseParams = haveNoiseParams && nh.getParam("gyro_noise_density", gyroNoiseDensity);
     haveNoiseParams = haveNoiseParams && nh.getParam("gyro_random_walk", gyroRandomWalk);
     haveNoiseParams = haveNoiseParams && nh.getParam("acc_noise_density", accNoiseDensity);
     haveNoiseParams = haveNoiseParams && nh.getParam("acc_random_walk", accRandomWalk);
+    haveNoiseParams = haveNoiseParams && nh.getParam("integration_covariance", integrationCovariance);
+    haveNoiseParams = haveNoiseParams && nh.getParam("bias_acc_omega_int", biasAccOmegaInt);
     haveNoiseParams = haveNoiseParams && nh.getParam("rovio_covariance", rovioCovariance);
     haveNoiseParams = haveNoiseParams && nh.getParam("loam_covariance", loamCovariance);
     haveNoiseParams = haveNoiseParams && nh.getParam("gravitational_acceleration", gravitationalAcceleration);
@@ -30,15 +32,11 @@ int main(int argc, char **argv) {
 
     auto imu_params = PreintegratedCombinedMeasurements::Params::MakeSharedU(gravitationalAcceleration);
 
-    imu_params->gyroscopeCovariance << I_3x3 * gyroNoiseDensity;
-    imu_params->biasOmegaCovariance << I_3x3 * gyroRandomWalk;
-    imu_params->accelerometerCovariance << I_3x3 * accNoiseDensity;
-    imu_params->biasAccCovariance << I_3x3 * accRandomWalk;
-
-    imu_params->integrationCovariance = I_3x3 * 1e-8; // From gtsam kitti example
-
-    imu_params->omegaCoriolis = Vector3::Zero(); // don't know
-    imu_params->biasAccOmegaInt << I_6x6 * 1e-5; // From gtsam kitti example
+    imu_params->gyroscopeCovariance << I_3x3 * gyroNoiseDensity * gyroNoiseDensity;
+    imu_params->biasOmegaCovariance << I_3x3 * gyroRandomWalk * gyroRandomWalk;
+    imu_params->accelerometerCovariance << I_3x3 * accNoiseDensity * accNoiseDensity;
+    imu_params->biasAccCovariance << I_3x3 * accRandomWalk * accRandomWalk;
+    imu_params->integrationCovariance = I_3x3 * integrationCovariance;
 
     auto pub = nh.advertise<nav_msgs::Odometry>("/optimized_pose", 1000);
 
