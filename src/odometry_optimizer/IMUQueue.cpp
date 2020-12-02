@@ -23,19 +23,22 @@ bool IMUQueue::hasMeasurementsInRange(ros::Time start, ros::Time end) {
     return betweenCount > 1; // TODO make it > 0?
 }
 
-int IMUQueue::integrateIMUMeasurements(std::shared_ptr<PreintegrationType> &imuMeasurements, ros::Time start, ros::Time end) {
+int IMUQueue::integrateIMUMeasurements(std::shared_ptr<PreintegrationType> &imuMeasurements, ros::Time start,
+                                       ros::Time end) {
     lock_guard<mutex> lock(mu);
     int numIntg = 0;
     auto lastTime = start;
     bool ranToEnd = true;
+    bool isPastEnd = false;
     for (auto &it : imuMap) {
         auto imuMsg = it.second;
         if (imuMsg.header.stamp > end) {
-            ranToEnd = false;
-            break;
+            isPastEnd = true;
         }
         if (imuMsg.header.stamp > start) {
-            auto dt = imuMsg.header.stamp - lastTime;
+            auto dt = isPastEnd
+                      ? end - lastTime
+                      : imuMsg.header.stamp - lastTime;
             auto linearMsg = imuMsg.linear_acceleration;
             auto acc = Vector3(linearMsg.x, linearMsg.y, linearMsg.z);
             auto angularMsg = imuMsg.angular_velocity;
@@ -43,6 +46,10 @@ int IMUQueue::integrateIMUMeasurements(std::shared_ptr<PreintegrationType> &imuM
             imuMeasurements->integrateMeasurement(acc, omega, dt.toSec());
             lastTime = imuMsg.header.stamp;
             numIntg++;
+        }
+        if (isPastEnd) {
+            ranToEnd = false;
+            break;
         }
     }
     if (ranToEnd) {
