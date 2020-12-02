@@ -20,10 +20,13 @@
     <param name="odometry2_topic_name" value="/echo/aft_mapped_to_init_CORRECTED"/>
     <param name="loam_health_topic_name" value="/laser_odom_status"/>
 
-    <param name="gyro_noise_density" value="0.00016968"/>
-    <param name="gyro_random_walk" value="0.000019393"/>
-    <param name="acc_noise_density" value="0.002"/>
-    <param name="acc_random_walk" value="0.003"/>
+    <param name="gyro_noise_density" value="0.01"/>
+    <param name="gyro_random_walk" value="0.001"/>
+    <param name="acc_noise_density" value="0.1"/>
+    <param name="acc_random_walk" value="0.001"/>
+    <param name="rovio_covariance" value="0.01"/>
+    <param name="loam_covariance" value="0.01"/>
+    <param name="gravitational_acceleration" value="9.89"/>
     <!-- /odometry fusion -->
 
     <!-- rovio -->

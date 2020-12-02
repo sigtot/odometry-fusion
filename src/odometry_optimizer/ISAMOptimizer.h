@@ -49,8 +49,11 @@ private:
     QueuedOdometryMeasurementProcessor odometryMeasurementProcessor;
     HealthBuffer loamHealthBuffer;
     IMUQueue imuQueue;
+
+    const double rovioCovariance;
+    const double loamCovariance;
 public:
-    explicit ISAMOptimizer(ros::Publisher *pub, const boost::shared_ptr<PreintegrationCombinedParams>& imu_params);
+    explicit ISAMOptimizer(ros::Publisher *pub, const boost::shared_ptr<PreintegrationCombinedParams>& imu_params, double rovioCovariance, double loamCovariance);
 
     void recvIMUMsg(const sensor_msgs::Imu &msg);
 

@@ -31,14 +31,18 @@ ISAM2Params getParams() {
     isam2Params.factorization = ISAM2Params::CHOLESKY;
 }
 
-ISAMOptimizer::ISAMOptimizer(ros::Publisher *pub, const boost::shared_ptr<PreintegrationCombinedParams> &imu_params)
+ISAMOptimizer::ISAMOptimizer(ros::Publisher *pub, const boost::shared_ptr<PreintegrationCombinedParams> &imu_params, double rovioCovariance, double loamCovariance)
         : pub(*pub),
           isam(ISAM2(ISAM2Params())),
+          rovioCovariance(rovioCovariance),
+          loamCovariance(loamCovariance),
           loamHealthBuffer(15, 3),
           odometryMeasurementProcessor(std::bind(&ISAMOptimizer::processOdometryMeasurement,
                                                  this,
                                                  std::placeholders::_1),
                                        4) {
+    cout << "Starting up with rovio covariance " << rovioCovariance << " and loam covariance " << loamCovariance << endl;
+    imu_params->print("IMU params: ");
     auto imuBias = imuBias::ConstantBias(); // Initialize at zero bias
     imuMeasurements = std::make_shared<PreintegratedCombinedMeasurements>(imu_params, imuBias);
     imuMeasurements->resetIntegration();
@@ -85,10 +89,8 @@ void ISAMOptimizer::processOdometryMeasurement(const OdometryMeasurement &measur
         case ODOMETRY_TYPE_ROVIO:
             poseStamped.header = measurement.msg.header;
             poseStamped.pose = measurement.msg.pose.pose;
-            tfListenerNew.transformPose("/map", poseStamped,
-                                        poseMsgInWorldFrame); // Can fail if newer transform message has arrived
-            shouldPublish = recvRovioOdometryAndUpdateState(poseMsgInWorldFrame, noiseModel::Diagonal::Variances(
-                    (Vector(6) << 0.1, 0.1, 0.1, 0.1, 0.1, 0.1).finished()));
+            shouldPublish = recvRovioOdometryAndUpdateState(poseStamped, noiseModel::Diagonal::Variances(
+                    (Vector(6) << rovioCovariance, rovioCovariance, rovioCovariance, rovioCovariance, rovioCovariance, rovioCovariance).finished()));
             break;
         case ODOMETRY_TYPE_LOAM:
             if (loamHealthBuffer.isHealthy(measurement.msg.header.stamp)) {
@@ -97,7 +99,7 @@ void ISAMOptimizer::processOdometryMeasurement(const OdometryMeasurement &measur
                 tfListenerNew.transformPose("/map", poseStamped,
                                             poseMsgInWorldFrame); // Can fail if newer transform message has arrived
                 shouldPublish = recvLidarOdometryAndUpdateState(poseMsgInWorldFrame, noiseModel::Diagonal::Variances(
-                        (Vector(6) << 0.1, 0.1, 0.1, 0.1, 0.1, 0.1).finished()));
+                        (Vector(6) << loamCovariance, loamCovariance, loamCovariance, loamCovariance, loamCovariance, loamCovariance).finished()));
             }
             break;
     }
@@ -217,13 +219,14 @@ ISAMOptimizer::recvOdometryAndUpdateState(const geometry_msgs::PoseStamped &msg,
             factors.print("whole graph");
             throw e;
         }
-        imuMeasurements->resetIntegrationAndSetBias(isam.calculateEstimate<imuBias::ConstantBias>(B(poseNum)));
+        auto bias = isam.calculateEstimate<imuBias::ConstantBias>(B(poseNum));
+        imuMeasurements->resetIntegrationAndSetBias(bias);
         lastOdometry = odometry;
         lastPoseNum = poseNum;
         return true;
     } else {
         // We do not increment poseNum because the time interval since last pose is so small
-        cout << "Not enough time between imu measurements: " << lastPoseNum << endl;
+        cout << "Not enough time between odometry measurements: " << lastPoseNum << endl;
         if (lastPoseNum > 0 && poseNum > lastPoseNum) {
             cout << "Adding between factor without imu" << lastPoseNum << endl;
             addOdometryBetweenFactor(lastPoseNum, poseNum, lastOdometry, odometry, noise, graph);

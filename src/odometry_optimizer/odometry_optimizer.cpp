@@ -12,28 +12,28 @@ int main(int argc, char **argv) {
     ros::init(argc, argv, "odometry_optimizer");
     ros::NodeHandle nh;
 
-    auto imu_params = PreintegratedCombinedMeasurements::Params::MakeSharedU(9.81);
-    Matrix3 eye3;
-    eye3 << 1, 0, 0,
-            0, 1, 0,
-            0, 0, 1;
 
-    bool have_imu_params = true;
-    double gyroNoiseDensity, gyroRandomWalk, accNoiseDensity, accRandomWalk;
-    have_imu_params = have_imu_params && nh.getParam("gyro_noise_density", gyroNoiseDensity);
-    have_imu_params = have_imu_params && nh.getParam("gyro_random_walk", gyroRandomWalk);
-    have_imu_params = have_imu_params && nh.getParam("acc_noise_density", accNoiseDensity);
-    have_imu_params = have_imu_params && nh.getParam("acc_random_walk", accRandomWalk);
+    bool haveNoiseParams = true;
+    double gyroNoiseDensity, gyroRandomWalk, accNoiseDensity, accRandomWalk, rovioCovariance, loamCovariance, gravitationalAcceleration;
+    haveNoiseParams = haveNoiseParams && nh.getParam("gyro_noise_density", gyroNoiseDensity);
+    haveNoiseParams = haveNoiseParams && nh.getParam("gyro_random_walk", gyroRandomWalk);
+    haveNoiseParams = haveNoiseParams && nh.getParam("acc_noise_density", accNoiseDensity);
+    haveNoiseParams = haveNoiseParams && nh.getParam("acc_random_walk", accRandomWalk);
+    haveNoiseParams = haveNoiseParams && nh.getParam("rovio_covariance", rovioCovariance);
+    haveNoiseParams = haveNoiseParams && nh.getParam("loam_covariance", loamCovariance);
+    haveNoiseParams = haveNoiseParams && nh.getParam("gravitational_acceleration", gravitationalAcceleration);
 
-    if (!have_imu_params) {
-        cout << "You must supply imu params. Exiting." << endl;
+    if (!haveNoiseParams) {
+        cout << "You must supply noise params (imu, rovio and loam). Exiting." << endl;
         return 1;
     }
 
-    imu_params->gyroscopeCovariance << I_3x3 * gyroNoiseDensity * gyroNoiseDensity;
-    imu_params->biasOmegaCovariance << I_3x3 * gyroRandomWalk * gyroRandomWalk;
-    imu_params->accelerometerCovariance << I_3x3 * accNoiseDensity * accNoiseDensity;
-    imu_params->biasAccCovariance << I_3x3 * accRandomWalk * accRandomWalk;
+    auto imu_params = PreintegratedCombinedMeasurements::Params::MakeSharedU(gravitationalAcceleration);
+
+    imu_params->gyroscopeCovariance << I_3x3 * gyroNoiseDensity;
+    imu_params->biasOmegaCovariance << I_3x3 * gyroRandomWalk;
+    imu_params->accelerometerCovariance << I_3x3 * accNoiseDensity;
+    imu_params->biasAccCovariance << I_3x3 * accRandomWalk;
 
     imu_params->integrationCovariance = I_3x3 * 1e-8; // From gtsam kitti example
 
@@ -42,7 +42,7 @@ int main(int argc, char **argv) {
 
     auto pub = nh.advertise<nav_msgs::Odometry>("/optimized_pose", 1000);
 
-    ISAMOptimizer isamOptimizer(&pub, imu_params);
+    ISAMOptimizer isamOptimizer(&pub, imu_params, rovioCovariance, loamCovariance);
     std::string imuTopicName, odometry1TopicName, odometry2TopicName, loamHealthTopicName;
 
     if (!nh.getParam("imu_topic_name", imuTopicName)) {
