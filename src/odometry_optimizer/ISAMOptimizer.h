@@ -55,8 +55,10 @@ private:
 
     const double rovioCovariance;
     const double loamCovariance;
+
+    const int extraRovioPriorInterval;
 public:
-    explicit ISAMOptimizer(ros::Publisher *pub, const boost::shared_ptr<PreintegrationCombinedParams>& imu_params, double rovioCovariance, double loamCovariance);
+    explicit ISAMOptimizer(ros::Publisher *pub, const boost::shared_ptr<PreintegrationCombinedParams>& imu_params, double rovioCovariance, double loamCovariance, int extraRovioPriorInterval);
 
     void recvIMUMsg(const sensor_msgs::Imu &msg);
 

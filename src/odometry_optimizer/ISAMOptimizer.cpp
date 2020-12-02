@@ -13,6 +13,7 @@
 #include <nav_msgs/Odometry.h>
 #include <gtsam/nonlinear/ISAM2Params.h>
 #include <iostream>
+#include <gtsam/navigation/GPSFactor.h>
 
 #include "geometry_msgs/PoseStamped.h"
 
@@ -31,11 +32,12 @@ ISAM2Params getParams() {
     isam2Params.factorization = ISAM2Params::CHOLESKY;
 }
 
-ISAMOptimizer::ISAMOptimizer(ros::Publisher *pub, const boost::shared_ptr<PreintegrationCombinedParams> &imu_params, double rovioCovariance, double loamCovariance)
+ISAMOptimizer::ISAMOptimizer(ros::Publisher *pub, const boost::shared_ptr<PreintegrationCombinedParams> &imu_params, double rovioCovariance, double loamCovariance, int extraRovioPriorInterval)
         : pub(*pub),
           isam(ISAM2(ISAM2Params())),
           rovioCovariance(rovioCovariance),
           loamCovariance(loamCovariance),
+          extraRovioPriorInterval(extraRovioPriorInterval),
           loamHealthBuffer(15, 3),
           odometryMeasurementProcessor(std::bind(&ISAMOptimizer::processOdometryMeasurement,
                                                  this,
@@ -215,6 +217,11 @@ ISAMOptimizer::recvOdometryAndUpdateState(const geometry_msgs::PoseStamped &msg,
         poseNum++;
         if (lastPoseNum > 0) {
             addOdometryBetweenFactor(lastPoseNum, poseNum, lastOdometry, odometry, noise, graph);
+            if (extraRovioPriorInterval != 0 && poseNum % extraRovioPriorInterval == 0 && msg.header.frame_id != "/map") {
+                auto extraPriorNoise = noiseModel::Diagonal::Variances((Vector(6) << rovioCovariance, rovioCovariance, rovioCovariance, rovioCovariance, rovioCovariance, rovioCovariance).finished());
+                cout << "Adding prior on " << X(poseNum) << " from msg in frame " << msg.header.frame_id << endl;
+                graph.addPrior<Pose3>(X(poseNum), odometry, extraPriorNoise);
+            }
         } else {
             // If we have initialized the other modality, but not this one, we need to add a second hard prior on the pose
             auto priorNoiseX = noiseModel::Diagonal::Sigmas(

@@ -38,9 +38,15 @@ int main(int argc, char **argv) {
     imu_params->biasAccCovariance << I_3x3 * accRandomWalk * accRandomWalk;
     imu_params->integrationCovariance = I_3x3 * integrationCovariance;
 
+    int extraRovioPriorInterval;
+    if (!nh.getParam("extra_rovio_prior_interval", extraRovioPriorInterval)) {
+        cout << "You must supply a value for extra_rovio_prior_interval (give 0 for no extra priors)" << endl;
+        return 1;
+    }
+
     auto pub = nh.advertise<nav_msgs::Odometry>("/optimized_pose", 1000);
 
-    ISAMOptimizer isamOptimizer(&pub, imu_params, rovioCovariance, loamCovariance);
+    ISAMOptimizer isamOptimizer(&pub, imu_params, rovioCovariance, loamCovariance, extraRovioPriorInterval);
     std::string imuTopicName, odometry1TopicName, odometry2TopicName, loamHealthTopicName;
 
     if (!nh.getParam("imu_topic_name", imuTopicName)) {
