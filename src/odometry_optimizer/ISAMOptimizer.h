@@ -20,6 +20,7 @@
 #include <deque>
 #include <thread>
 #include <condition_variable>
+#include <tf/transform_broadcaster.h>
 #include "QueuedOdometryMeasurementProcessor.h"
 #include "IMUQueue.h"
 #include "HealthBuffer.h"
@@ -50,6 +51,8 @@ private:
     HealthBuffer loamHealthBuffer;
     IMUQueue imuQueue;
 
+    tf::TransformBroadcaster tfBr;
+
     const double rovioCovariance;
     const double loamCovariance;
 public:
@@ -70,6 +73,7 @@ public:
 
     void publishUpdatedPoses();
     void publishNewestPose();
+    void publishNewestFrame();
     void incrementTime(const ros::Time &stamp);
 
     NavState getPrevIMUState();

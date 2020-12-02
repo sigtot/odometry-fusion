@@ -71,7 +71,22 @@ void ISAMOptimizer::publishNewestPose() {
     nav_msgs::Odometry msg;
     msg.pose.pose = toPoseMsg(newPose);
     msg.header.frame_id = "/map";
+    msg.header.stamp = ros::Time::now();
     pub.publish(msg);
+}
+
+void ISAMOptimizer::publishNewestFrame() {
+    auto newPose = isam.calculateEstimate<Pose3>(X(poseNum));
+    auto poseQuat = newPose.rotation().toQuaternion();
+    auto poseTrans = newPose.translation();
+    tf::Transform transform;
+    tf::Quaternion tfQuat(poseQuat.x(), poseQuat.y(), poseQuat.z(), poseQuat.w());
+    tf::Vector3 tfOrigin(poseTrans.x(), poseTrans.y(), poseTrans.z());
+
+    transform.setRotation(tfQuat);
+    transform.setOrigin(tfOrigin);
+
+    tfBr.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "/map", "/origin_fused"));
 }
 
 // TODO: Remove
@@ -104,6 +119,7 @@ void ISAMOptimizer::processOdometryMeasurement(const OdometryMeasurement &measur
             break;
     }
     if (shouldPublish) {
+        publishNewestFrame();
         publishNewestPose();
     }
     lastOdometryMeasurement = measurement;
