@@ -243,7 +243,7 @@ ISAMOptimizer::recvOdometryAndUpdateState(const PoseStampedMeasurement &measurem
         if (lastPoseNum > 0 && (measurement.type == ODOMETRY_TYPE_ROVIO || lastLoamOk)) {
             addOdometryBetweenFactor(lastPoseNum, poseNum, toPose3(lastOdometry.msg.pose), odometry, noise, graph);
             if (extraRovioPriorInterval != 0 && poseNum % extraRovioPriorInterval == 0 &&
-                measurement.msg.header.frame_id != "/map") { // TODO: Replace check with measurement.type == ODOMETRY_TYPE_ROVIO
+                measurement.type == ODOMETRY_TYPE_ROVIO) {
                 auto extraPriorNoise = noiseModel::Diagonal::Variances((Vector(6)
                         << rovioCovariance, rovioCovariance, rovioCovariance, rovioCovariance, rovioCovariance, rovioCovariance).finished());
                 cout << "Adding prior on " << X(poseNum) << " from msg in frame " << measurement.msg.header.frame_id
