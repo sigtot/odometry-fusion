@@ -49,7 +49,8 @@ ISAMOptimizer::ISAMOptimizer(ros::Publisher *pub, const boost::shared_ptr<Preint
                                                  this,
                                                  std::placeholders::_1),
                                        4) {
-    cout << "Starting up with rovio covariance " << rovioCovariance << " and loam covariance " << loamCovariance << endl;
+    cout << "Starting up with rovio covariance " << rovioCovariance << " and loam covariance " << loamCovariance
+         << endl;
     imu_params->print("IMU params: ");
     auto imuBias = imuBias::ConstantBias(); // Initialize at zero bias
     imuMeasurements = std::make_shared<PreintegratedCombinedMeasurements>(imu_params, imuBias);
@@ -103,26 +104,23 @@ void ISAMOptimizer::incrementTime(const ros::Time &stamp) {
     timestamps.push_back(stamp);
 }
 
-void ISAMOptimizer::processOdometryMeasurement(const OdometryMeasurement &measurement) {
+void ISAMOptimizer::processOdometryMeasurement(const PoseStampedMeasurement &measurement) {
     mu.lock();
     bool shouldPublish = false;
-    geometry_msgs::PoseStamped poseStamped;
-    geometry_msgs::PoseStamped poseMsgInWorldFrame;
     switch (measurement.type) {
         case ODOMETRY_TYPE_ROVIO:
-            poseStamped.header = measurement.msg.header;
-            poseStamped.pose = measurement.msg.pose.pose;
-            shouldPublish = recvRovioOdometryAndUpdateState(poseStamped, noiseModel::Diagonal::Variances(
-                    (Vector(6) << rovioCovariance, rovioCovariance, rovioCovariance, rovioCovariance, rovioCovariance, rovioCovariance).finished()));
+            shouldPublish = recvRovioOdometryAndUpdateState(measurement, noiseModel::Diagonal::Variances(
+                    (Vector(6)
+                            << rovioCovariance, rovioCovariance, rovioCovariance, rovioCovariance, rovioCovariance, rovioCovariance).finished()));
             break;
         case ODOMETRY_TYPE_LOAM:
             if (loamHealthBuffer.isHealthy(measurement.msg.header.stamp)) {
-                poseStamped.header = measurement.msg.header;
-                poseStamped.pose = measurement.msg.pose.pose;
-                tfListenerNew.transformPose("/map", poseStamped,
-                                            poseMsgInWorldFrame); // Can fail if newer transform message has arrived
-                shouldPublish = recvLidarOdometryAndUpdateState(poseMsgInWorldFrame, noiseModel::Diagonal::Variances(
-                        (Vector(6) << loamCovariance, loamCovariance, loamCovariance, loamCovariance, loamCovariance, loamCovariance).finished()));
+                PoseStampedMeasurement transformedMeasurement = measurement;
+                tfListenerNew.transformPose("/map", measurement.msg,
+                                            transformedMeasurement.msg); // Can fail if newer transform message has arrived
+                shouldPublish = recvLidarOdometryAndUpdateState(measurement, noiseModel::Diagonal::Variances(
+                        (Vector(6)
+                                << loamCovariance, loamCovariance, loamCovariance, loamCovariance, loamCovariance, loamCovariance).finished()));
             }
             break;
     }
@@ -135,23 +133,29 @@ void ISAMOptimizer::processOdometryMeasurement(const OdometryMeasurement &measur
 }
 
 void ISAMOptimizer::recvRovioOdometryAndAddToQueue(const nav_msgs::Odometry &msg) {
-    OdometryMeasurement measurement{ODOMETRY_TYPE_ROVIO, msg};
+    geometry_msgs::PoseStamped poseStamped;
+    poseStamped.header = msg.header;
+    poseStamped.pose = msg.pose.pose;
+    PoseStampedMeasurement measurement{ODOMETRY_TYPE_ROVIO, poseStamped};
     odometryMeasurementProcessor.addMeasurement(measurement);
 }
 
 void ISAMOptimizer::recvLidarOdometryAndAddToQueue(const nav_msgs::Odometry &msg) {
-    OdometryMeasurement measurement{ODOMETRY_TYPE_LOAM, msg};
+    geometry_msgs::PoseStamped poseStamped;
+    poseStamped.header = msg.header;
+    poseStamped.pose = msg.pose.pose;
+    PoseStampedMeasurement measurement{ODOMETRY_TYPE_LOAM, poseStamped};
     odometryMeasurementProcessor.addMeasurement(measurement);
 }
 
-bool ISAMOptimizer::recvRovioOdometryAndUpdateState(const geometry_msgs::PoseStamped &msg,
+bool ISAMOptimizer::recvRovioOdometryAndUpdateState(const PoseStampedMeasurement &measurement,
                                                     const boost::shared_ptr<noiseModel::Gaussian> &noise) {
-    return recvOdometryAndUpdateState(msg, lastRovioPoseNum, lastRovioOdometry, noise);
+    return recvOdometryAndUpdateState(measurement, lastRovioPoseNum, lastRovioOdometry, noise);
 }
 
-bool ISAMOptimizer::recvLidarOdometryAndUpdateState(const geometry_msgs::PoseStamped &msg,
+bool ISAMOptimizer::recvLidarOdometryAndUpdateState(const PoseStampedMeasurement &measurement,
                                                     const boost::shared_ptr<noiseModel::Gaussian> &noise) {
-    return recvOdometryAndUpdateState(msg, lastLidarPoseNum, lastLidarOdometry, noise);
+    return recvOdometryAndUpdateState(measurement, lastLidarPoseNum, lastLidarOdometry, noise);
 }
 
 void
@@ -197,11 +201,11 @@ void addCombinedFactor(int poseNum, const Pose3 &fromOdometry, const Pose3 &odom
 }
 
 bool
-ISAMOptimizer::recvOdometryAndUpdateState(const geometry_msgs::PoseStamped &msg, int &lastPoseNum, Pose3 &lastOdometry,
-                                          const boost::shared_ptr<noiseModel::Gaussian> &noise) {
+ISAMOptimizer::recvOdometryAndUpdateState(const PoseStampedMeasurement &measurement, int &lastPoseNum,
+                                          Pose3 &lastOdometry, const boost::shared_ptr<noiseModel::Gaussian> &noise) {
     Values values;
     NonlinearFactorGraph graph;
-    auto odometry = toPose3(msg.pose);
+    auto odometry = toPose3(measurement.msg.pose);
     if (poseNum == 0) {
         poseNum++;
         auto priorNoiseX = noiseModel::Diagonal::Sigmas((Vector(6)
@@ -218,14 +222,17 @@ ISAMOptimizer::recvOdometryAndUpdateState(const geometry_msgs::PoseStamped &msg,
         return true;
     }
     auto haveIMUMeasurements = imuQueue.hasMeasurementsInRange(lastOdometryMeasurement.msg.header.stamp,
-                                                               msg.header.stamp);
+                                                               measurement.msg.header.stamp);
     if (haveIMUMeasurements) {
         poseNum++;
         if (lastPoseNum > 0) {
             addOdometryBetweenFactor(lastPoseNum, poseNum, lastOdometry, odometry, noise, graph);
-            if (extraRovioPriorInterval != 0 && poseNum % extraRovioPriorInterval == 0 && msg.header.frame_id != "/map") {
-                auto extraPriorNoise = noiseModel::Diagonal::Variances((Vector(6) << rovioCovariance, rovioCovariance, rovioCovariance, rovioCovariance, rovioCovariance, rovioCovariance).finished());
-                cout << "Adding prior on " << X(poseNum) << " from msg in frame " << msg.header.frame_id << endl;
+            if (extraRovioPriorInterval != 0 && poseNum % extraRovioPriorInterval == 0 &&
+                measurement.msg.header.frame_id != "/map") {
+                auto extraPriorNoise = noiseModel::Diagonal::Variances((Vector(6)
+                        << rovioCovariance, rovioCovariance, rovioCovariance, rovioCovariance, rovioCovariance, rovioCovariance).finished());
+                cout << "Adding prior on " << X(poseNum) << " from msg in frame " << measurement.msg.header.frame_id
+                     << endl;
                 graph.addPrior<Pose3>(X(poseNum), odometry, extraPriorNoise);
             }
         } else {
@@ -235,7 +242,8 @@ ISAMOptimizer::recvOdometryAndUpdateState(const geometry_msgs::PoseStamped &msg,
             graph.addPrior<Pose3>(X(poseNum), odometry, priorNoiseX);
             cout << "Added prior on second modality" << endl;
         }
-        imuQueue.integrateIMUMeasurements(imuMeasurements, lastOdometryMeasurement.msg.header.stamp, msg.header.stamp);
+        imuQueue.integrateIMUMeasurements(imuMeasurements, lastOdometryMeasurement.msg.header.stamp,
+                                          measurement.msg.header.stamp);
         addCombinedFactor(poseNum, lastOdometry, odometry, imuMeasurements, noise, graph);
         NavState navState = imuMeasurements->predict(getPrevIMUState(), getPrevIMUBias());
         addValuesOnIMU(poseNum, navState, getPrevIMUBias(), values);

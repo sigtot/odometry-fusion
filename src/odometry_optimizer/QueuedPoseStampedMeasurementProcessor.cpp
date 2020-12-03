@@ -1,16 +1,16 @@
 #include <ros/init.h>
-#include "QueuedOdometryMeasurementProcessor.h"
+#include "QueuedPoseStampedMeasurementProcessor.h"
 
-QueuedOdometryMeasurementProcessor::QueuedOdometryMeasurementProcessor(
-        const function<void(const OdometryMeasurement &)> &processFn,
+QueuedPoseStampedMeasurementProcessor::QueuedPoseStampedMeasurementProcessor(
+        const function<void(const PoseStampedMeasurement &)> &processFn,
         const int minProcessCount) : processFn(processFn), minProcessCount(minProcessCount) {
-    processThread = thread(&QueuedOdometryMeasurementProcessor::waitAndProcessMessages, this);
+    processThread = thread(&QueuedPoseStampedMeasurementProcessor::waitAndProcessMessages, this);
 }
 
-void QueuedOdometryMeasurementProcessor::waitAndProcessMessages() {
+void QueuedPoseStampedMeasurementProcessor::waitAndProcessMessages() {
     unique_lock<std::mutex> newMeasurementNotifier(newMeasurementNotifierMutex);
     while (!ros::isShuttingDown()) {
-        OdometryMeasurement measurement;
+        PoseStampedMeasurement measurement;
         bool haveMeasurement = false;
         {
             lock_guard<mutex> lock(measurementMutex);
@@ -29,7 +29,7 @@ void QueuedOdometryMeasurementProcessor::waitAndProcessMessages() {
     }
 }
 
-void QueuedOdometryMeasurementProcessor::addMeasurement(const OdometryMeasurement &measurement) {
+void QueuedPoseStampedMeasurementProcessor::addMeasurement(const PoseStampedMeasurement &measurement) {
     {
         lock_guard<mutex> lock(measurementMutex);
         measurements[measurement.msg.header.stamp.toSec()] = measurement;
@@ -37,7 +37,7 @@ void QueuedOdometryMeasurementProcessor::addMeasurement(const OdometryMeasuremen
     cv.notify_one();
 }
 
-QueuedOdometryMeasurementProcessor::~QueuedOdometryMeasurementProcessor() {
+QueuedPoseStampedMeasurementProcessor::~QueuedPoseStampedMeasurementProcessor() {
     cv.notify_all();
     processThread.join();
 }

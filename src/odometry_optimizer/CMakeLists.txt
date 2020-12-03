@@ -37,7 +37,7 @@ link_directories(${PCL_LIBRARY_DIRS})
 
 add_definitions(${PCL_DEFINITIONS})
 
-add_executable(odometry_optimizer odometry_optimizer.cpp ISAMOptimizer.cpp ISAMOptimizer.h utils.cpp utils.h OdometryMeasurement.h QueuedOdometryMeasurementProcessor.cpp QueuedOdometryMeasurementProcessor.h IMUQueue.cpp IMUQueue.h HealthBuffer.cpp HealthBuffer.h PointCloudPublisher.cpp PointCloudPublisher.h)
+add_executable(odometry_optimizer odometry_optimizer.cpp ISAMOptimizer.cpp ISAMOptimizer.h utils.cpp utils.h PoseStampedMeasurement.h QueuedPoseStampedMeasurementProcessor.cpp QueuedPoseStampedMeasurementProcessor.h IMUQueue.cpp IMUQueue.h HealthBuffer.cpp HealthBuffer.h PointCloudPublisher.cpp PointCloudPublisher.h)
 target_link_libraries(odometry_optimizer gtsam ${catkin_LIBRARIES} ${PCL_LIBRARIES})
 
 
