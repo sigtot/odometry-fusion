@@ -75,16 +75,16 @@ void ISAMOptimizer::publishUpdatedPoses() {
     ROS_INFO("Published path");
 }
 
-void ISAMOptimizer::publishNewestPose() {
+void ISAMOptimizer::publishNewestPose(ros::Time stamp) {
     auto newPose = isam.calculateEstimate<Pose3>(X(poseNum));
     nav_msgs::Odometry msg;
     msg.pose.pose = toPoseMsg(newPose);
     msg.header.frame_id = "/map";
-    msg.header.stamp = ros::Time::now();
+    msg.header.stamp = stamp;
     pub.publish(msg);
 }
 
-void ISAMOptimizer::publishNewestFrame() {
+void ISAMOptimizer::publishNewestFrame(ros::Time stamp) {
     auto newPose = isam.calculateEstimate<Pose3>(X(poseNum));
     auto poseQuat = newPose.rotation().toQuaternion();
     auto poseTrans = newPose.translation();
@@ -95,7 +95,7 @@ void ISAMOptimizer::publishNewestFrame() {
     transform.setRotation(tfQuat.normalized());
     transform.setOrigin(tfOrigin);
 
-    tfBr.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "/map", "/velodyne_fused"));
+    tfBr.sendTransform(tf::StampedTransform(transform, stamp, "/map", "/velodyne_fused"));
 }
 
 // TODO: Remove
@@ -125,8 +125,8 @@ void ISAMOptimizer::processOdometryMeasurement(const PoseStampedMeasurement &mea
             break;
     }
     if (shouldPublish) {
-        publishNewestFrame();
-        publishNewestPose();
+        publishNewestFrame(measurement.msg.header.stamp);
+        publishNewestPose(measurement.msg.header.stamp);
     }
     lastOdometryMeasurement = measurement;
     mu.unlock();

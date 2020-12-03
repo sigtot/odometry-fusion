@@ -88,9 +88,9 @@ public:
 
     void publishUpdatedPoses();
 
-    void publishNewestPose();
+    void publishNewestPose(ros::Time stamp);
 
-    void publishNewestFrame();
+    void publishNewestFrame(ros::Time stamp);
 
     void incrementTime(const ros::Time &stamp);
 
