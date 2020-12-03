@@ -237,9 +237,9 @@ ISAMOptimizer::recvOdometryAndUpdateState(const PoseStampedMeasurement &measurem
                                                                measurement.msg.header.stamp);
     if (haveIMUMeasurements) {
         poseNum++;
-        bool lastLoamOk = loamHealthBuffer.isHealthy(lastLidarOdometry.msg.header.stamp) &&
-                          !loamHealthBuffer.wasDegenerateLastTimeStep();
-        if (lastPoseNum > 0 && (measurement.type == ODOMETRY_TYPE_ROVIO || lastLoamOk)) {
+        if (lastPoseNum > 0 && (measurement.type == ODOMETRY_TYPE_ROVIO ||
+                                (loamHealthBuffer.isHealthy(lastLidarOdometry.msg.header.stamp) &&
+                                 !loamHealthBuffer.wasDegenerateLastTimeStep()))) {
             addOdometryBetweenFactor(lastPoseNum, poseNum, toPose3(lastOdometry.msg.pose), odometry, noise, graph);
             if (extraRovioPriorInterval != 0 && poseNum % extraRovioPriorInterval == 0 &&
                 measurement.type == ODOMETRY_TYPE_ROVIO) {
