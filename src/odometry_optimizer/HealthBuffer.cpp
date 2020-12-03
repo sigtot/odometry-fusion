@@ -80,9 +80,11 @@ void HealthBuffer::unsafePropagateDegenerateFSM() {
     if (degenerate) {
         if (unsafeBufferSum() == 0) {
             degenerate = false;
+            cout << "No longer degenerate!" << endl;
         }
     } else {
         if (unsafeBufferSum() >= degenerateThresh) {
+            cout << "Degenerate!" << endl;
             degenerate = true;
         }
     }
