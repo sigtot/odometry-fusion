@@ -27,14 +27,11 @@ void PointCloudPublisher::republishInNewFrame(const sensor_msgs::PointCloud2 &ms
     // Get and apply transform
     tf::StampedTransform transform;
     auto time = msg.header.stamp;
-    if(tfListener.waitForTransform("/aft_mapped_to_init_CORRECTED", "/camera_init", time, ros::Duration(3.0))) {
-        cout << "Have transform" << endl;
-    } else {
+    if(!tfListener.waitForTransform("/aft_mapped_to_init_CORRECTED", "/camera_init", time, ros::Duration(3.0))) {
         cout << "Did not find transform, so not publishing point cloud." << endl;
         return;
     }
     tfListener.lookupTransform("/aft_mapped_to_init_CORRECTED", "/camera_init", time, transform);
-    cout << "lidar tf origin: " << transform.getOrigin().x() << ", " << transform.getOrigin().y() << ", " << transform.getOrigin().z() << endl;
     pcl_ros::transformPointCloud("/map", transform, msg, outMsg);
 
     // Set time and frame
