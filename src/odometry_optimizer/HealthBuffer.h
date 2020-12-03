@@ -17,13 +17,14 @@ private:
     map<double, int> buffer; // 0: healthy, 1: unhealthy
 
     bool degenerate = false;
+    bool wasDegenerate = false;
 
     int unsafeBufferSum();
 
     /**
      * Unsafe: Must only be called from a scope with mu locked
      */
-    void unsafePropagateDegenerateSFM();
+    void unsafePropagateDegenerateFSM();
 
 public:
     HealthBuffer(int bufferSize, int degenerateThresh);
@@ -33,6 +34,7 @@ public:
     bool isHealthy(ros::Time ts);
 
     bool isDegenerate() const;
+    bool wasDegenerateLastTimeStep() const;
 
     void print(const string &prefix);
 };

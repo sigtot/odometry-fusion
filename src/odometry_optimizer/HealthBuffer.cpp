@@ -12,7 +12,7 @@ void HealthBuffer::addMeasurement(const std_msgs::Header &measurement) {
         buffer.erase(buffer.begin());
     }
     buffer[measurement.stamp.toSec()] = measurement.seq;
-    unsafePropagateDegenerateSFM();
+    unsafePropagateDegenerateFSM();
 }
 
 bool HealthBuffer::isHealthy(ros::Time ts) {
@@ -40,6 +40,10 @@ bool HealthBuffer::isHealthy(ros::Time ts) {
 
 bool HealthBuffer::isDegenerate() const {
     return degenerate;
+}
+
+bool HealthBuffer::wasDegenerateLastTimeStep() const {
+    return wasDegenerate;
 }
 
 void HealthBuffer::print(const string &prefix) {
@@ -71,7 +75,8 @@ int HealthBuffer::unsafeBufferSum() {
     return sum;
 }
 
-void HealthBuffer::unsafePropagateDegenerateSFM() {
+void HealthBuffer::unsafePropagateDegenerateFSM() {
+    wasDegenerate = degenerate;
     if (degenerate) {
         if (unsafeBufferSum() == 0) {
             degenerate = false;
