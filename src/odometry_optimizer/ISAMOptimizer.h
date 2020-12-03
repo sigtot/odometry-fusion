@@ -32,8 +32,6 @@ class ISAMOptimizer : public boost::noncopyable {
 private:
     ros::Publisher &pub;
     ISAM2 isam;
-    Pose3 lastRovioOdometry;
-    Pose3 lastLidarOdometry;
     std::shared_ptr<PreintegrationType> imuMeasurements;
     ros::Time lastIMUTime;
     ros::Time lastPoseTime;
@@ -45,7 +43,10 @@ private:
     int poseNum = 0;
     mutex mu;
     tf::TransformListener tfListenerNew;
+
     PoseStampedMeasurement lastOdometryMeasurement;
+    PoseStampedMeasurement lastRovioOdometry;
+    PoseStampedMeasurement lastLidarOdometry;
 
     tf::StampedTransform cameraInitTransform;
 
@@ -76,7 +77,7 @@ public:
     bool recvLidarOdometryAndUpdateState(const PoseStampedMeasurement &measurement,
                                          const boost::shared_ptr<noiseModel::Gaussian> &noise);
 
-    bool recvOdometryAndUpdateState(const PoseStampedMeasurement &measurement, int &lastPoseNum, Pose3 &lastOdometry,
+    bool recvOdometryAndUpdateState(const PoseStampedMeasurement &measurement, int &lastPoseNum, PoseStampedMeasurement &lastOdometry,
                                     const boost::shared_ptr<noiseModel::Gaussian> &noise);
 
     void recvLoamHealthMsg(const std_msgs::Header &msg);

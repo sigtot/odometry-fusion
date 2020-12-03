@@ -202,7 +202,7 @@ void addCombinedFactor(int poseNum, const Pose3 &fromOdometry, const Pose3 &odom
 
 bool
 ISAMOptimizer::recvOdometryAndUpdateState(const PoseStampedMeasurement &measurement, int &lastPoseNum,
-                                          Pose3 &lastOdometry, const boost::shared_ptr<noiseModel::Gaussian> &noise) {
+                                          PoseStampedMeasurement &lastOdometry, const boost::shared_ptr<noiseModel::Gaussian> &noise) {
     Values values;
     NonlinearFactorGraph graph;
     auto odometry = toPose3(measurement.msg.pose);
@@ -217,7 +217,7 @@ ISAMOptimizer::recvOdometryAndUpdateState(const PoseStampedMeasurement &measurem
         addPoseVelocityAndBiasValues(poseNum, odometry, Vector3::Zero(), imuBias::ConstantBias(), values);
         isam.update(graph, values);
         imuMeasurements->resetIntegration(); // TODO Remove
-        lastOdometry = odometry;
+        lastOdometry = measurement;
         lastPoseNum = poseNum;
         return true;
     }
@@ -226,7 +226,7 @@ ISAMOptimizer::recvOdometryAndUpdateState(const PoseStampedMeasurement &measurem
     if (haveIMUMeasurements) {
         poseNum++;
         if (lastPoseNum > 0) {
-            addOdometryBetweenFactor(lastPoseNum, poseNum, lastOdometry, odometry, noise, graph);
+            addOdometryBetweenFactor(lastPoseNum, poseNum, toPose3(lastOdometry.msg.pose), odometry, noise, graph);
             if (extraRovioPriorInterval != 0 && poseNum % extraRovioPriorInterval == 0 &&
                 measurement.msg.header.frame_id != "/map") {
                 auto extraPriorNoise = noiseModel::Diagonal::Variances((Vector(6)
@@ -244,22 +244,13 @@ ISAMOptimizer::recvOdometryAndUpdateState(const PoseStampedMeasurement &measurem
         }
         imuQueue.integrateIMUMeasurements(imuMeasurements, lastOdometryMeasurement.msg.header.stamp,
                                           measurement.msg.header.stamp);
-        addCombinedFactor(poseNum, lastOdometry, odometry, imuMeasurements, noise, graph);
+        addCombinedFactor(poseNum, toPose3(lastOdometry.msg.pose), odometry, imuMeasurements, noise, graph);
         NavState navState = imuMeasurements->predict(getPrevIMUState(), getPrevIMUBias());
         addValuesOnIMU(poseNum, navState, getPrevIMUBias(), values);
-
-        try {
-            isam.update(graph, values);
-        } catch (gtsam::IndeterminantLinearSystemException e) {
-            cout << "Caught indeterminant linear system exception when adding between factors" << endl;
-            auto factors = isam.getFactorsUnsafe();
-            auto result = isam.calculateEstimate();
-            factors.print("whole graph");
-            throw e;
-        }
+        isam.update(graph, values);
         auto bias = isam.calculateEstimate<imuBias::ConstantBias>(B(poseNum));
         imuMeasurements->resetIntegrationAndSetBias(bias);
-        lastOdometry = odometry;
+        lastOdometry = measurement;
         lastPoseNum = poseNum;
         return true;
     } else {
@@ -267,10 +258,10 @@ ISAMOptimizer::recvOdometryAndUpdateState(const PoseStampedMeasurement &measurem
         cout << "Not enough time between odometry measurements: " << lastPoseNum << endl;
         if (lastPoseNum > 0 && poseNum > lastPoseNum) {
             cout << "Adding between factor without imu" << lastPoseNum << endl;
-            addOdometryBetweenFactor(lastPoseNum, poseNum, lastOdometry, odometry, noise, graph);
+            addOdometryBetweenFactor(lastPoseNum, poseNum, toPose3(lastOdometry.msg.pose), odometry, noise, graph);
             isam.update(graph, values);
             lastPoseNum = poseNum;
-            lastOdometry = odometry;
+            lastOdometry = measurement;
         }
         return false;
     }
