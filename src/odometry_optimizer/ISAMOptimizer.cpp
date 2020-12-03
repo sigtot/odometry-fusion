@@ -231,7 +231,6 @@ ISAMOptimizer::recvOdometryAndUpdateState(const PoseStampedMeasurement &measurem
                        graph);
         addPoseVelocityAndBiasValues(poseNum, odometry, Vector3::Zero(), imuBias::ConstantBias(), values);
         isam.update(graph, values);
-        imuMeasurements->resetIntegration(); // TODO Remove
         return true;
     }
     auto haveIMUMeasurements = imuQueue.hasMeasurementsInRange(lastOdometryMeasurement.msg.header.stamp,
