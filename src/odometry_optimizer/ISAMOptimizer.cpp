@@ -235,12 +235,6 @@ ISAMOptimizer::recvOdometryAndUpdateState(const PoseStampedMeasurement &measurem
                      << endl;
                 graph.addPrior<Pose3>(X(poseNum), odometry, extraPriorNoise);
             }
-        } else {
-            // If we have initialized the other modality, but not this one, we need to add a second hard prior on the pose
-            auto priorNoiseX = noiseModel::Diagonal::Sigmas(
-                    (Vector(6) << 0.01, 0.01, 0.01, 0.01, 0.01, 0.01).finished());
-            graph.addPrior<Pose3>(X(poseNum), odometry, priorNoiseX);
-            cout << "Added prior on second modality" << endl;
         }
         imuQueue.integrateIMUMeasurements(imuMeasurements, lastOdometryMeasurement.msg.header.stamp,
                                           measurement.msg.header.stamp);
