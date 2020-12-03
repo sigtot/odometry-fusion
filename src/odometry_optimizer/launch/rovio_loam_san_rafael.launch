@@ -26,7 +26,7 @@
     <param name="acc_random_walk" value="5.54371716e-03"/>
     <param name="integration_covariance" value="1.0e-08"/>
     <param name="bias_acc_omega_int" value="0.1"/>
-    <param name="gravitational_acceleration" value="9.80"/>
+    <param name="gravitational_acceleration" value="9.91"/>
 
     <param name="rovio_covariance" value="0.01"/>
     <param name="loam_covariance" value="0.01"/>
