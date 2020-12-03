@@ -28,8 +28,8 @@
     <param name="bias_acc_omega_int" value="0.1"/>
     <param name="gravitational_acceleration" value="9.91"/>
 
-    <param name="rovio_covariance" value="0.01"/>
-    <param name="loam_covariance" value="0.01"/>
+    <param name="rovio_covariance" value="0.0001"/> <!-- 1cm std -->
+    <param name="loam_covariance" value="0.0001"/> <!-- 1cm std -->
 
     <!-- 0: no extra priors, 1-inf: add a prior on x with the value of rovio every n poses -->
     <param name="extra_rovio_prior_interval" value="0"/>
