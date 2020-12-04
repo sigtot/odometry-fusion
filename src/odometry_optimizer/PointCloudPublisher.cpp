@@ -4,6 +4,8 @@
 
 #include <utility>
 
+#include <cmath>
+
 PointCloudPublisher::PointCloudPublisher(ros::Publisher &livePub, ros::Publisher &finalPub,
                                          PointCloudPublisherParams params)
         : params(std::move(params)),
@@ -55,14 +57,21 @@ void PointCloudPublisher::publishFinalPointClouds() {
     for (auto &cloud : pointClouds) {
         auto closestPose = *newestPath.poses.begin();
         double closestTimeDiff = 99999;
-        for (auto &pose : newestPath.poses) {
-            double timeDiff = pose.header.stamp.toSec() - cloud.header.stamp.toSec();
+        for (const auto &pose : newestPath.poses) {
+            double timeDiff = abs(pose.header.stamp.toSec() - cloud.header.stamp.toSec());
             if (timeDiff < closestTimeDiff) {
                 closestPose = pose;
                 closestTimeDiff = timeDiff;
             }
         }
-        finalPub.publish(cloud);
+        tf::Transform transform;
+        tf::poseMsgToTF(closestPose.pose, transform);
+        auto transformedCloud = cloud;
+        pcl_ros::transformPointCloud("/dunno", transform, cloud, transformedCloud);
+
+        transformedCloud.header.frame_id = params.finalFrameId;
+        finalPub.publish(transformedCloud);
+        this_thread::sleep_for(chrono::milliseconds(40));  // Add small delay between msgs for cool effect (and to not overload the publisher)
     }
 }
 

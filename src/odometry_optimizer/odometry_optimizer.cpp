@@ -97,7 +97,7 @@ int main(int argc, char **argv) {
                                                  &isamOptimizer);
 
     PointCloudPublisherParams pointCloudPublisherParams;
-    pointCloudPublisherParams.interval = 15;
+    pointCloudPublisherParams.interval = 5;
     pointCloudPublisherParams.lidarFrameId = "/aft_mapped_to_init_CORRECTED";
     pointCloudPublisherParams.lidarInitFrameId = "/camera_init";
     pointCloudPublisherParams.liveFrameId = "/velodyne_fused";
