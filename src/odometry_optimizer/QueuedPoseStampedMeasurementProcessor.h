@@ -17,6 +17,8 @@ public:
      */
     QueuedPoseStampedMeasurementProcessor(const function<void(const PoseStampedMeasurement &)> &processFn, int minProcessCount);
 
+    size_t size() const;
+
     void addMeasurement(const PoseStampedMeasurement &measurement);
 
     virtual ~QueuedPoseStampedMeasurementProcessor();

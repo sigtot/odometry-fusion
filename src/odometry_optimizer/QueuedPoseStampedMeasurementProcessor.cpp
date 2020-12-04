@@ -41,3 +41,7 @@ QueuedPoseStampedMeasurementProcessor::~QueuedPoseStampedMeasurementProcessor() 
     cv.notify_all();
     processThread.join();
 }
+
+size_t QueuedPoseStampedMeasurementProcessor::size() const {
+    return measurements.size();
+}
