@@ -1,6 +1,7 @@
 #include <gtsam/nonlinear/LevenbergMarquardtOptimizer.h>
 #include <ros/ros.h>
 #include <nav_msgs/Odometry.h>
+#include <nav_msgs/Path.h>
 #include <iostream>
 #include <gtsam/navigation/CombinedImuFactor.h>
 #include "ISAMOptimizer.h"
@@ -61,11 +62,12 @@ int main(int argc, char **argv) {
     }
 
     auto pub = nh.advertise<nav_msgs::Odometry>("/optimized_pose", 1000);
+    auto pathPublisher = nh.advertise<nav_msgs::Path>("/optimized_path", 1000);
 
     Params params;
     nh.getParam("only_imu", params.onlyIMU);
 
-    ISAMOptimizer isamOptimizer(&pub, imu_params, tf::StampedTransform(), rovioCovariance, loamCovariance,
+    ISAMOptimizer isamOptimizer(&pub, &pathPublisher, imu_params, tf::StampedTransform(), rovioCovariance, loamCovariance,
                                 extraRovioPriorInterval, params);
     std::string imuTopicName, odometry1TopicName, odometry2TopicName, loamHealthTopicName;
 

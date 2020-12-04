@@ -36,10 +36,11 @@ ISAM2Params getIsam2Params() {
     return isam2Params;
 }
 
-ISAMOptimizer::ISAMOptimizer(ros::Publisher *pub, const boost::shared_ptr<PreintegrationCombinedParams> &imu_params,
+ISAMOptimizer::ISAMOptimizer(ros::Publisher *pub, ros::Publisher *pathPublisher, const boost::shared_ptr<PreintegrationCombinedParams> &imu_params,
                              const tf::StampedTransform &cameraInitTransform, double rovioCovariance,
                              double loamCovariance, int extraRovioPriorInterval, const Params &params)
         : pub(*pub),
+          pathPublisher(*pathPublisher),
           isam(ISAM2(getIsam2Params())),
           params(params),
           cameraInitTransform(cameraInitTransform),
@@ -69,13 +70,14 @@ void ISAMOptimizer::publishUpdatedPoses() {
     for (int j = 1; j < poseNum; ++j) {
         auto pose = isam.calculateEstimate<Pose3>(X(j));
         auto stamp = timestamps[j];
-        auto stampedPose = createStampedPoseMsg(pose, stamp);
-        stampedPose.header.frame_id = "/map";
-        pathMsg.poses.push_back(stampedPose);
+        geometry_msgs::PoseStamped stampedPoseMsg;
+        stampedPoseMsg.pose = toPoseMsg(pose);
+        stampedPoseMsg.header.stamp = stamp;
+        stampedPoseMsg.header.frame_id = "/map";
+        pathMsg.poses.push_back(stampedPoseMsg);
     }
     pathMsg.header.frame_id = "/map";
-    pub.publish(pathMsg);
-    ROS_INFO("Published path");
+    pathPublisher.publish(pathMsg);
 }
 
 void ISAMOptimizer::publishNewestPose(ros::Time stamp) {
@@ -134,6 +136,7 @@ void ISAMOptimizer::processOdometryMeasurement(const PoseStampedMeasurement &mea
     if (shouldPublish) {
         publishNewestFrame(measurement.msg.header.stamp);
         publishNewestPose(measurement.msg.header.stamp);
+        publishUpdatedPoses();
     }
     mu.unlock();
 }
@@ -213,6 +216,7 @@ ISAMOptimizer::recvOdometryAndUpdateState(const PoseStampedMeasurement &measurem
     auto odometry = toPose3(measurement.msg.pose);
     if (poseNum == 0) {
         poseNum++;
+        timestamps.push_back(measurement.msg.header.stamp);
         auto priorNoiseX = noiseModel::Diagonal::Sigmas((Vector(6)
                 << 0.0001, 0.0001, 0.0001, 0.0001, 0.0001, 0.0001).finished()); // We are dead sure about starting pos
         auto priorNoiseV = noiseModel::Isotropic::Sigma(3, 0.01);
@@ -231,6 +235,7 @@ ISAMOptimizer::recvOdometryAndUpdateState(const PoseStampedMeasurement &measurem
                                                                measurement.msg.header.stamp);
     if (haveIMUMeasurements) {
         poseNum++;
+        timestamps.push_back(measurement.msg.header.stamp);
         if (lastPoseNum > 0 && (measurement.type == ODOMETRY_TYPE_ROVIO ||
                                 (loamHealthBuffer.isHealthy(lastLidarOdometry.msg.header.stamp) &&
                                  !loamHealthBuffer.wasDegenerateLastTimeStep()))) {

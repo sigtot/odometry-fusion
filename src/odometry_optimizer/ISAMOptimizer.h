@@ -32,6 +32,7 @@ using namespace std;
 class ISAMOptimizer : public boost::noncopyable {
 private:
     ros::Publisher &pub;
+    ros::Publisher &pathPublisher;
     ISAM2 isam;
     std::shared_ptr<PreintegrationType> imuMeasurements;
     ros::Time lastIMUTime;
@@ -64,7 +65,7 @@ private:
 
     Params params;
 public:
-    explicit ISAMOptimizer(ros::Publisher *pub, const boost::shared_ptr<PreintegrationCombinedParams> &imu_params,
+    explicit ISAMOptimizer(ros::Publisher *pub, ros::Publisher *pathPublisher, const boost::shared_ptr<PreintegrationCombinedParams> &imu_params,
                            const tf::StampedTransform &cameraInitTransform, double rovioCovariance,
                            double loamCovariance, int extraRovioPriorInterval, const Params &params);
 

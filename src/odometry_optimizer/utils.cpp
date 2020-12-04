@@ -29,13 +29,6 @@ Pose3 toPose3(const geometry_msgs::Pose &poseMsg) {
     return Pose3(rot, point);
 }
 
-geometry_msgs::PoseStamped createStampedPoseMsg(const Pose3 &pose, const ros::Time &stamp) {
-    geometry_msgs::PoseStamped stampedMsg;
-    stampedMsg.pose = toPoseMsg(pose);
-    stampedMsg.header.stamp = stamp;
-    return stampedMsg;
-}
-
 // Silly conversion function while I look for a better way to convert an array to an eigen::Matrix
 gtsam::Matrix6 toGtsamMatrix(boost::array<double, 36> arr) {
     Matrix6 mat;
