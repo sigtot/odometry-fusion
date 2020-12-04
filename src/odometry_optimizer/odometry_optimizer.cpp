@@ -5,6 +5,7 @@
 #include <gtsam/navigation/CombinedImuFactor.h>
 #include "ISAMOptimizer.h"
 #include "PointCloudPublisher.h"
+#include "Params.h"
 
 using namespace std;
 using namespace gtsam;
@@ -61,8 +62,11 @@ int main(int argc, char **argv) {
 
     auto pub = nh.advertise<nav_msgs::Odometry>("/optimized_pose", 1000);
 
+    Params params;
+    nh.getParam("only_imu", params.onlyIMU);
+
     ISAMOptimizer isamOptimizer(&pub, imu_params, tf::StampedTransform(), rovioCovariance, loamCovariance,
-                                extraRovioPriorInterval);
+                                extraRovioPriorInterval, params);
     std::string imuTopicName, odometry1TopicName, odometry2TopicName, loamHealthTopicName;
 
     if (!nh.getParam("imu_topic_name", imuTopicName)) {

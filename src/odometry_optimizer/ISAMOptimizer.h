@@ -24,6 +24,7 @@
 #include "QueuedPoseStampedMeasurementProcessor.h"
 #include "IMUQueue.h"
 #include "HealthBuffer.h"
+#include "Params.h"
 
 using namespace gtsam;
 using namespace std;
@@ -60,10 +61,12 @@ private:
     const double loamCovariance;
 
     const int extraRovioPriorInterval;
+
+    Params params;
 public:
     explicit ISAMOptimizer(ros::Publisher *pub, const boost::shared_ptr<PreintegrationCombinedParams> &imu_params,
                            const tf::StampedTransform &cameraInitTransform, double rovioCovariance,
-                           double loamCovariance, int extraRovioPriorInterval);
+                           double loamCovariance, int extraRovioPriorInterval, const Params &params);
 
     void recvIMUMsg(const sensor_msgs::Imu &msg);
 

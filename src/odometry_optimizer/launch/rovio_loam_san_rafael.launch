@@ -35,6 +35,8 @@
     <param name="extra_rovio_prior_interval" value="0"/>
 
     <param name="publish_point_cloud" type="bool" value="true"/>
+
+    <param name="only_imu" type="bool" value="false"/>
     <!-- /odometry fusion -->
 
     <!-- rovio -->
