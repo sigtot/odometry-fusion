@@ -67,7 +67,8 @@ int main(int argc, char **argv) {
     Params params;
     nh.getParam("only_imu", params.onlyIMU);
 
-    ISAMOptimizer isamOptimizer(&pub, &pathPublisher, imu_params, tf::StampedTransform(), rovioCovariance, loamCovariance,
+    ISAMOptimizer isamOptimizer(&pub, &pathPublisher, imu_params, tf::StampedTransform(), rovioCovariance,
+                                loamCovariance,
                                 extraRovioPriorInterval, params);
     std::string imuTopicName, odometry1TopicName, odometry2TopicName, loamHealthTopicName;
 
@@ -95,16 +96,22 @@ int main(int argc, char **argv) {
                                                  &ISAMOptimizer::recvLoamHealthMsg,
                                                  &isamOptimizer);
 
+    PointCloudPublisherParams pointCloudPublisherParams;
+    pointCloudPublisherParams.interval = 15;
+    pointCloudPublisherParams.lidarFrameId = "/aft_mapped_to_init_CORRECTED";
+    pointCloudPublisherParams.lidarInitFrameId = "/camera_init";
+    pointCloudPublisherParams.liveFrameId = "/velodyne_fused";
+    pointCloudPublisherParams.finalFrameId = "/map";
     bool publishPointCloud = false;
     ros::Publisher pointCloudPub;
     ros::Subscriber subPointCloud;
-    PointCloudPublisher pointCloudPublisher("/velodyne_fused", pointCloudPub, 15);
+    PointCloudPublisher pointCloudPublisher(pointCloudPub, pointCloudPublisherParams);
     if (nh.getParam("publish_point_cloud", publishPointCloud) && publishPointCloud) {
         pointCloudPub = nh.advertise<sensor_msgs::PointCloud2>("/velodyne_cloud_in_fused_frame", 10);
         subPointCloud = nh.subscribe("/velodyne_cloud_registered",
-                                                     10,
-                                                     &PointCloudPublisher::republishInNewFrame,
-                                                     &pointCloudPublisher);
+                                     10,
+                                     &PointCloudPublisher::storeAndRepublishInNewFrame,
+                                     &pointCloudPublisher);
     }
 
     ros::spin();

@@ -1,16 +1,16 @@
 #include "PointCloudPublisher.h"
 
 #include <pcl_ros/transforms.h>
+
 #include <utility>
 
-PointCloudPublisher::PointCloudPublisher(string publishFrame, ros::Publisher &pub, int interval)
-        : publishFrame(move(publishFrame)),
-          pub(pub),
-          interval(interval) {}
+PointCloudPublisher::PointCloudPublisher(ros::Publisher &pub, PointCloudPublisherParams params)
+        : params(std::move(params)),
+          pub(pub) {}
 
-void PointCloudPublisher::republishInNewFrame(const sensor_msgs::PointCloud2 &msg) {
+void PointCloudPublisher::storeAndRepublishInNewFrame(const sensor_msgs::PointCloud2 &msg) {
     counter++;
-    if ((counter % interval) != 0) {
+    if ((counter % params.interval) != 0) {
         return;
     }
     // Create copy msg
@@ -27,16 +27,17 @@ void PointCloudPublisher::republishInNewFrame(const sensor_msgs::PointCloud2 &ms
     // Get and apply transform
     tf::StampedTransform transform;
     auto time = msg.header.stamp;
-    if(!tfListener.waitForTransform("/aft_mapped_to_init_CORRECTED", "/camera_init", time, ros::Duration(3.0))) {
+    if (!tfListener.waitForTransform(params.lidarFrameId, params.lidarInitFrameId, time, ros::Duration(3.0))) {
         cout << "Did not find transform, so not publishing point cloud." << endl;
         return;
     }
-    tfListener.lookupTransform("/aft_mapped_to_init_CORRECTED", "/camera_init", time, transform);
-    pcl_ros::transformPointCloud("/map", transform, msg, outMsg);
+    tfListener.lookupTransform(params.lidarFrameId, params.lidarInitFrameId, time, transform);
+    pcl_ros::transformPointCloud("/map", transform, msg,
+                                 outMsg); // Actually don't know what that "/map" target frame means, but whatever. This works.
 
     // Set time and frame
     outMsg.header.stamp = time;
-    outMsg.header.frame_id = "/velodyne_fused";
+    outMsg.header.frame_id = params.liveFrameId;
 
     // Publish
     pub.publish(outMsg);

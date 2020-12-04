@@ -9,17 +9,27 @@
 using namespace std;
 
 
+struct PointCloudPublisherParams {
+    int interval;
+
+    string lidarFrameId; /// The point cloud will be transformed from this frame to lidarInitFrameId align it with origin
+    string lidarInitFrameId; /// The point cloud will be transformed to this frame from lidarFrameId to align it with origin
+
+    string liveFrameId; /// The frame in which the point cloud will be published during live execution
+    string finalFrameId; /// The frame in which the final point cloud will be published when the complete trajectory is done
+};
+
 class PointCloudPublisher {
 private:
-    const string publishFrame;
     ros::Publisher &pub;
     tf::TransformListener tfListener;
-    const int interval;
     int counter = 0;
+    const PointCloudPublisherParams params;
 
 public:
-    PointCloudPublisher(string publishFrame, ros::Publisher &pub, int interval);
-    void republishInNewFrame(const sensor_msgs::PointCloud2 &msg);
+    PointCloudPublisher(ros::Publisher &pub, PointCloudPublisherParams params);
+
+    void storeAndRepublishInNewFrame(const sensor_msgs::PointCloud2 &msg);
 
 public:
 
