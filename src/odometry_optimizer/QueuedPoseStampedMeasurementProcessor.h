@@ -28,6 +28,8 @@ private:
 
     const int minProcessCount;
 
+    double lastProcessedTimestamp = 0.0;
+
     mutex newMeasurementNotifierMutex;
     condition_variable cv;
 

@@ -11,19 +11,16 @@ void QueuedPoseStampedMeasurementProcessor::waitAndProcessMessages() {
     unique_lock<std::mutex> newMeasurementNotifier(newMeasurementNotifierMutex);
     while (!ros::isShuttingDown()) {
         PoseStampedMeasurement measurement;
-        bool haveMeasurement = false;
         {
             lock_guard<mutex> lock(measurementMutex);
             if (measurements.size() >= minProcessCount) {
                 measurement = measurements.begin()->second;
                 measurements.erase(measurements.begin());
-                haveMeasurement = true;
+                processFn(measurement);
+                lastProcessedTimestamp = measurement.msg.header.stamp.toSec();
             }
         }
-        if (haveMeasurement) {
-            processFn(measurement);
-        }
-        if(measurements.size() < minProcessCount) {
+        if (measurements.size() < minProcessCount) {
             cv.wait(newMeasurementNotifier);
         }
     }
@@ -32,7 +29,12 @@ void QueuedPoseStampedMeasurementProcessor::waitAndProcessMessages() {
 void QueuedPoseStampedMeasurementProcessor::addMeasurement(const PoseStampedMeasurement &measurement) {
     {
         lock_guard<mutex> lock(measurementMutex);
-        measurements[measurement.msg.header.stamp.toSec()] = measurement;
+        if (measurement.msg.header.stamp.toSec() > lastProcessedTimestamp) {
+            measurements[measurement.msg.header.stamp.toSec()] = measurement;
+        } else {
+            cout << fixed << "Rejected measurement because its timestamp is before the one last processed ("
+                 << measurement.msg.header.stamp.toSec() << " < " << lastProcessedTimestamp << ")" << endl;
+        }
     }
     cv.notify_one();
 }
