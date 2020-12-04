@@ -102,15 +102,23 @@ int main(int argc, char **argv) {
     pointCloudPublisherParams.lidarInitFrameId = "/camera_init";
     pointCloudPublisherParams.liveFrameId = "/velodyne_fused";
     pointCloudPublisherParams.finalFrameId = "/map";
+    pointCloudPublisherParams.finalPublishTime = 1561411140.726387;
     bool publishPointCloud = false;
-    ros::Publisher pointCloudPub;
+    ros::Publisher livePointCloudPub;
+    ros::Publisher finalPointCloudPub;
     ros::Subscriber subPointCloud;
-    PointCloudPublisher pointCloudPublisher(pointCloudPub, pointCloudPublisherParams);
+    ros::Subscriber subOptimizedPath;
+    PointCloudPublisher pointCloudPublisher(livePointCloudPub, finalPointCloudPub, pointCloudPublisherParams);
     if (nh.getParam("publish_point_cloud", publishPointCloud) && publishPointCloud) {
-        pointCloudPub = nh.advertise<sensor_msgs::PointCloud2>("/velodyne_cloud_in_fused_frame", 10);
+        livePointCloudPub = nh.advertise<sensor_msgs::PointCloud2>("/velodyne_cloud_in_fused_frame", 10);
+        finalPointCloudPub = nh.advertise<sensor_msgs::PointCloud2>("/velodyne_final_fused_corrected", 10);
         subPointCloud = nh.subscribe("/velodyne_cloud_registered",
                                      10,
                                      &PointCloudPublisher::storeAndRepublishInNewFrame,
+                                     &pointCloudPublisher);
+        subOptimizedPath = nh.subscribe("/optimized_path",
+                                     1000,
+                                     &PointCloudPublisher::recvNewPath,
                                      &pointCloudPublisher);
     }
 

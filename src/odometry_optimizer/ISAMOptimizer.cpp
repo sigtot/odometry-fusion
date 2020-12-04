@@ -65,7 +65,7 @@ void ISAMOptimizer::recvIMUMsg(const sensor_msgs::Imu &msg) {
     imuQueue.addMeasurement(msg);
 }
 
-void ISAMOptimizer::publishUpdatedPoses() {
+void ISAMOptimizer::publishUpdatedPoses(ros::Time stamp) {
     nav_msgs::Path pathMsg;
     for (int j = 1; j < poseNum; ++j) {
         auto pose = isam.calculateEstimate<Pose3>(X(j));
@@ -77,6 +77,7 @@ void ISAMOptimizer::publishUpdatedPoses() {
         pathMsg.poses.push_back(stampedPoseMsg);
     }
     pathMsg.header.frame_id = "/map";
+    pathMsg.header.stamp = stamp;
     pathPublisher.publish(pathMsg);
 }
 
@@ -136,7 +137,7 @@ void ISAMOptimizer::processOdometryMeasurement(const PoseStampedMeasurement &mea
     if (shouldPublish) {
         publishNewestFrame(measurement.msg.header.stamp);
         publishNewestPose(measurement.msg.header.stamp);
-        publishUpdatedPoses();
+        publishUpdatedPoses(measurement.msg.header.stamp);
     }
     mu.unlock();
 }

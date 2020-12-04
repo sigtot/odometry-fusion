@@ -4,9 +4,13 @@
 
 #include <utility>
 
-PointCloudPublisher::PointCloudPublisher(ros::Publisher &pub, PointCloudPublisherParams params)
+PointCloudPublisher::PointCloudPublisher(ros::Publisher &livePub, ros::Publisher &finalPub,
+                                         PointCloudPublisherParams params)
         : params(std::move(params)),
-          pub(pub) {}
+          livePub(livePub),
+          finalPub(finalPub) {
+    finalPathPublishThread = thread(&PointCloudPublisher::waitForInactivityAndPublishFinalPointClouds, this);
+}
 
 void PointCloudPublisher::storeAndRepublishInNewFrame(const sensor_msgs::PointCloud2 &msg) {
     counter++;
@@ -40,5 +44,48 @@ void PointCloudPublisher::storeAndRepublishInNewFrame(const sensor_msgs::PointCl
     outMsg.header.frame_id = params.liveFrameId;
 
     // Publish
-    pub.publish(outMsg);
+    livePub.publish(outMsg);
+
+    // For the final point clouds, we set the frame id to the (global) finalFrameId instead of the on-robot frame used for live updates
+    outMsg.header.frame_id = params.finalFrameId;
+    pointClouds.push_back(outMsg);
+}
+
+void PointCloudPublisher::publishFinalPointClouds() {
+    for (auto &cloud : pointClouds) {
+        auto closestPose = *newestPath.poses.begin();
+        double closestTimeDiff = 99999;
+        for (auto &pose : newestPath.poses) {
+            double timeDiff = pose.header.stamp.toSec() - cloud.header.stamp.toSec();
+            if (timeDiff < closestTimeDiff) {
+                closestPose = pose;
+                closestTimeDiff = timeDiff;
+            }
+        }
+        finalPub.publish(cloud);
+    }
+}
+
+void PointCloudPublisher::recvNewPath(const nav_msgs::Path &msg) {
+    lock_guard<mutex> lock(newestPathMutex);
+    newestPath = msg;
+    haveNewestPath = true;
+}
+
+void PointCloudPublisher::waitForInactivityAndPublishFinalPointClouds() {
+    while (!ros::isShuttingDown()) {
+        {
+            lock_guard<mutex> lock(newestPathMutex);
+            if (haveNewestPath && newestPath.header.stamp.toSec() > params.finalPublishTime) {
+                cout << "Publishing final point clouds" << endl;
+                publishFinalPointClouds();
+                return;
+            }
+        }
+        this_thread::sleep_for(chrono::milliseconds(200));  //Sleep for 200ms ~ 5Hz polling
+    }
+}
+
+PointCloudPublisher::~PointCloudPublisher() {
+    finalPathPublishThread.join();
 }

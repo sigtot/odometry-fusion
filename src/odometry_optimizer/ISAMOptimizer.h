@@ -90,7 +90,7 @@ public:
 
     void processOdometryMeasurement(const PoseStampedMeasurement &measurement);
 
-    void publishUpdatedPoses();
+    void publishUpdatedPoses(ros::Time stamp);
 
     void publishNewestPose(ros::Time stamp);
 
