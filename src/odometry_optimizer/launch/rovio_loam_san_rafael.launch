@@ -32,6 +32,8 @@
     <param name="init_bias_y" value="0.0"/>
     <param name="init_bias_z" value="0.0"/>
 
+    <param name="imu_time_offset" value="0.0121537"/>
+
     <param name="rovio_covariance" value="0.0001"/> <!-- 1cm std -->
     <param name="loam_covariance" value="0.0001"/> <!-- 1cm std -->
 
@@ -49,7 +51,7 @@
         <param name="camera0_config" value="$(find odometry_optimizer)/cfg/san_rafael_cam.yml"/>
         <param name="cam0_topic_name" value="/camera/image_mono"/>
         <param name="imu_topic_name" value="/vn100/imu"/>
-        <!-- TODO add cam0_offset -->
+        <!-- TODO add cam0_offset as param (currently hardcoded in RovioNode.hpp) -->
     </node>
 
     <node pkg="tf" type="static_transform_publisher" name="world_to_map" respawn="true" args="0 0 0 0 0 0 /world /map 10 "/>

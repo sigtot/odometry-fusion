@@ -1,11 +1,14 @@
 #include "IMUQueue.h"
+#include "IMUQueueParams.h"
 #include <iostream>
 
-IMUQueue::IMUQueue() = default;
+IMUQueue::IMUQueue(IMUQueueParams params) : params(params) {};
 
 void IMUQueue::addMeasurement(const sensor_msgs::Imu &measurement) {
     lock_guard<mutex> lock(mu);
-    imuMap[measurement.header.stamp.toSec()] = measurement;
+    auto stampCorrectedMeasurement = measurement;
+    stampCorrectedMeasurement.header.stamp = measurement.header.stamp + ros::Duration(params.imuTimeOffset);
+    imuMap[stampCorrectedMeasurement.header.stamp.toSec()] = stampCorrectedMeasurement;
 }
 
 bool IMUQueue::hasMeasurementsInRange(ros::Time start, ros::Time end) {

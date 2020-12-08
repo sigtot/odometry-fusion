@@ -5,6 +5,7 @@
 #include <mutex>
 #include <sensor_msgs/Imu.h>
 #include <gtsam/navigation/CombinedImuFactor.h>
+#include "IMUQueueParams.h"
 
 using namespace std;
 using namespace gtsam;
@@ -13,9 +14,10 @@ class IMUQueue {
 private:
     map<double, sensor_msgs::Imu> imuMap;
     mutex mu;
+    const IMUQueueParams params;
 
 public:
-    IMUQueue();
+    explicit IMUQueue(IMUQueueParams params);
 
     void addMeasurement(const sensor_msgs::Imu &measurement);
 

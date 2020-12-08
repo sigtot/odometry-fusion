@@ -73,6 +73,8 @@ int main(int argc, char **argv) {
     nh.getParam("init_bias_g_y", params.initBiasGY);
     nh.getParam("init_bias_g_z", params.initBiasGZ);
 
+    nh.getParam("imu_time_offset", params.imuQueueParams.imuTimeOffset);
+
     ISAMOptimizer isamOptimizer(&pub, &pathPublisher, imu_params, tf::StampedTransform(), rovioCovariance,
                                 loamCovariance,
                                 extraRovioPriorInterval, params);
