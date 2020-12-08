@@ -66,6 +66,12 @@ int main(int argc, char **argv) {
 
     Params params;
     nh.getParam("only_imu", params.onlyIMU);
+    nh.getParam("init_bias_x", params.initBiasX);
+    nh.getParam("init_bias_y", params.initBiasY);
+    nh.getParam("init_bias_z", params.initBiasZ);
+    nh.getParam("init_bias_g_x", params.initBiasGX);
+    nh.getParam("init_bias_g_y", params.initBiasGY);
+    nh.getParam("init_bias_g_z", params.initBiasGZ);
 
     ISAMOptimizer isamOptimizer(&pub, &pathPublisher, imu_params, tf::StampedTransform(), rovioCovariance,
                                 loamCovariance,

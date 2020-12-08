@@ -28,6 +28,10 @@
     <param name="bias_acc_omega_int" value="0.1"/>
     <param name="gravitational_acceleration" value="9.91"/>
 
+    <param name="init_bias_x" value="0.0"/>
+    <param name="init_bias_y" value="0.0"/>
+    <param name="init_bias_z" value="0.0"/>
+
     <param name="rovio_covariance" value="0.0001"/> <!-- 1cm std -->
     <param name="loam_covariance" value="0.0001"/> <!-- 1cm std -->
 

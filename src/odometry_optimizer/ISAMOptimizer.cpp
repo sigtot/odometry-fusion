@@ -36,7 +36,8 @@ ISAM2Params getIsam2Params() {
     return isam2Params;
 }
 
-ISAMOptimizer::ISAMOptimizer(ros::Publisher *pub, ros::Publisher *pathPublisher, const boost::shared_ptr<PreintegrationCombinedParams> &imu_params,
+ISAMOptimizer::ISAMOptimizer(ros::Publisher *pub, ros::Publisher *pathPublisher,
+                             const boost::shared_ptr<PreintegrationCombinedParams> &imu_params,
                              const tf::StampedTransform &cameraInitTransform, double rovioCovariance,
                              double loamCovariance, int extraRovioPriorInterval, const Params &params)
         : pub(*pub),
@@ -222,7 +223,8 @@ ISAMOptimizer::recvOdometryAndUpdateState(const PoseStampedMeasurement &measurem
                 << 0.0001, 0.0001, 0.0001, 0.0001, 0.0001, 0.0001).finished()); // We are dead sure about starting pos
         auto priorNoiseV = noiseModel::Isotropic::Sigma(3, 0.01);
         auto priorNoiseB = noiseModel::Isotropic::Sigma(6, 1);
-        imuBias::ConstantBias initialBias(Vector3(0, 0, 0), Vector3::Zero());
+        imuBias::ConstantBias initialBias(Vector3(params.initBiasX, params.initBiasY, params.initBiasZ),
+                                          Vector3(params.initBiasGX, params.initBiasGY, params.initBiasGZ));
         addPriorFactor(odometry, Vector3::Zero(), initialBias, priorNoiseX, priorNoiseV, priorNoiseB,
                        graph);
         addPoseVelocityAndBiasValues(poseNum, odometry, Vector3::Zero(), initialBias, values);
