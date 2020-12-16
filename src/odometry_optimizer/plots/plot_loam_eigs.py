@@ -29,23 +29,24 @@ def get_data():
 
 def plot():
     ts, eigs_x, eigs_y, eigs_z, eigs_roll, eigs_pitch, eigs_yaw = get_data()
-    plt.figure()
+    f = plt.figure(figsize=(7.2, 2.8))
     plt.xlabel("t [s]")
-    plt.ylabel("eigenvalues of LOAM JtJ matrix")
+    plt.ylabel("eigenvalues of LOAM AtA matrix")
     for eigs, label in zip((eigs_x, eigs_y, eigs_z), (f"λ₁", "λ₂", "λ₃")):
         plt.plot(ts, eigs, label=label)
     plt.axline((ts[0], degenerate_thresh), (ts[-1], degenerate_thresh), label="degenerate thresh", color="m")
     plt.xlim(0, ts[-1])
     plt.legend()
-    plt.savefig("loam_eigs.pdf")
+    plt.savefig("loam_eigs.pdf", bbox_inches="tight")
 
 
     plt.figure()
     plt.xlabel("t [s]")
-    plt.ylabel("eigenvalues of LOAM JtJ matrix")
+    plt.ylabel("eigenvalues of LOAM AtA matrix")
     for eigs, label in zip((eigs_roll, eigs_pitch, eigs_yaw), ("roll", "pitch", "yaw")):
         plt.plot(ts, eigs, label=label)
-    plt.axline((ts[0], degenerate_thresh), (ts[-1], degenerate_thresh), label="degenerate thresh")
+    plt.axline((ts[0], degenerate_thresh), (ts[-1], degenerate_thresh), label="degenerate thresh", color="m")
+    plt.xlim(0, ts[-1])
     plt.legend()
     plt.savefig("loam_eigs_euler.pdf")
 
